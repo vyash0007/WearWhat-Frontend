@@ -1,5 +1,6 @@
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 export function Footer() {
   return (
@@ -12,9 +13,9 @@ export function Footer() {
                 Start organizing your wardrobe today
               </h2>
             </div>
-            <button className="mt-8 border border-white px-8 py-3 text-sm font-semibold tracking-widest hover:bg-white hover:text-black transition-colors w-fit">
+            <Button variant="outline" className="mt-8 w-fit bg-transparent border-white text-white hover:bg-white hover:text-black rounded-none">
               GET STARTED FREE
-            </button>
+            </Button>
           </div>
           <div className="px-12 py-16">
             <div className="grid grid-cols-3 gap-8">

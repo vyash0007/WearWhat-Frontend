@@ -20,20 +20,19 @@ export function CTASection() {
 				</div>
 				<div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-4">
 					<Button 
-						className="group bg-black text-white hover:bg-gray-800 px-8 py-6 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+						className="group bg-black text-white hover:bg-gray-800 px-12 py-8 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
 					>
 						Get started free
 						<ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
 					</Button>
-					<a
-						href="/how-it-works"
-						className="px-8 py-6 text-lg font-semibold rounded-lg border-2 border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all text-black"
+					<Button
+						variant="outline"
+						className="px-12 py-8 text-lg font-semibold rounded-lg"
 					>
 						See how it works
-					</a>
+					</Button>
 				</div>
 			</div>
 		</section>
 	)
 }
-
