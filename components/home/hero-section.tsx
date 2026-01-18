@@ -14,10 +14,10 @@ export function HeroSection() {
         <h1 className="text-black uppercase">
           Yourself
         </h1>
-        <h1 className="uppercase break-words w-full" style={{ color: 'rgba(255,255,255,0.85)', WebkitTextStroke: '2px rgba(255,255,255,0.4)', textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+        <h1 className="uppercase break-words w-full" style={{ color: 'rgba(255,255,255,0.85)', WebkitTextStroke: '2px rgba(255,255,255,0.4)', textShadow: '0 2px 15px rgba(0,0,0,0.2)' }}>
           Into The
         </h1>
-        <h1 className="uppercase break-words w-full" style={{ color: 'rgba(255,255,255,0.85)', WebkitTextStroke: '2px rgba(255,255,255,0.4)', textShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+        <h1 className="uppercase break-words w-full" style={{ color: 'rgba(255,255,255,0.85)', WebkitTextStroke: '2px rgba(255,255,255,0.4)', textShadow: '0 2px 15px rgba(0,0,0,0.2)' }}>
           Right Gear
         </h1>
       </div>

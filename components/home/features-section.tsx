@@ -22,7 +22,7 @@ export function FeaturesSection() {
 				>
 					{/* Left - Text Content */}
 					<div>
-						<h2 className="text-5xl md:text-6xl lg:text-7xl font-bold text-black leading-tight mb-8" style={{ fontFamily: 'Georgia, Times, serif' }}>
+						<h2 className="text-5xl md:text-6xl lg:text-7xl font-md text-black leading-tight mb-8" >
 							your closet,<br />reimagined
 						</h2>
 						<p className="text-lg md:text-xl text-gray-500 leading-relaxed" style={{ fontFamily: 'var(--font-poppins)' }}>
