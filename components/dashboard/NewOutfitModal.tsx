@@ -77,7 +77,7 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
           <X size={20} />
         </button>
 
-        <div className="flex flex-col md:flex-row">
+        <div className="grid md:grid-cols-2">
           {/* Left: Upload UI */}
           <div className="flex flex-1 flex-col items-start justify-center gap-6 p-8 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
@@ -138,40 +138,42 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
           </div>
 
           {/* Right: Image Preview */}
-          <div className="flex-1 p-8">
+          <div className="flex flex-col flex-1 p-8">
             <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               Selected Files ({images.length}/9)
             </h3>
-            {images.length > 0 ? (
-              <div className="grid grid-cols-3 gap-4 overflow-y-auto max-h-[450px] pr-2">
-                {images.map((file, index) => (
-                  <div key={index} className="group relative aspect-square">
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt={`preview ${index}`}
-                      className="h-full w-full rounded-lg object-cover"
-                    />
-                    <div className="absolute inset-0 rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button
-                        onClick={() => removeImage(index)}
-                        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40"
-                        aria-label="Remove image"
-                      >
-                        <X size={18} />
-                      </button>
+            <div className="flex-grow">
+              {images.length > 0 ? (
+                <div className="grid grid-cols-3 gap-4 overflow-y-auto max-h-[450px] pr-2">
+                  {images.map((file, index) => (
+                    <div key={index} className="group relative aspect-square">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`preview ${index}`}
+                        className="h-full w-full rounded-lg object-cover"
+                      />
+                      <div className="absolute inset-0 rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40"
+                          aria-label="Remove image"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
-                <div className="text-center text-gray-400 dark:text-gray-500">
-                  <FileImage size={48} className="mx-auto" />
-                  <p className="mt-2 font-medium">No files selected</p>
-                  <p className="text-sm">Your images will appear here.</p>
+                  ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="flex h-full items-center justify-center rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
+                  <div className="text-center text-gray-400 dark:text-gray-500">
+                    <FileImage size={48} className="mx-auto" />
+                    <p className="mt-2 font-medium">No files selected</p>
+                    <p className="text-sm">Your images will appear here.</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
