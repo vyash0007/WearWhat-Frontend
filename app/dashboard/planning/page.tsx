@@ -1,28 +1,60 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { FiCalendar } from "react-icons/fi";
-import { X, Sparkles, Send, Loader2 } from "lucide-react";
+import { X, Sparkles, Send, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { stylingService, type StylingRecommendationResponse } from "@/lib/api/styling";
+import { calendarOutfitsService, type CalendarOutfit } from "@/lib/api/calendarOutfits";
 
 interface DayData {
   day: string;
   date: string;
+  fullDate: string; // Format: YYYY-MM-DD for API
   temp: string;
+  tempValue: number;
   icon: string;
   today?: boolean;
 }
 
-const week: DayData[] = [
-  { day: "Tue", date: "Jan 13", temp: "20° 10°", icon: "sunny" },
-  { day: "Wed", date: "Jan 14", temp: "20° 9°", icon: "sunny" },
-  { day: "Today", date: "Jan 15", temp: "21° 10°", icon: "sunny", today: true },
-  { day: "Fri", date: "Jan 16", temp: "23° 11°", icon: "sunny" },
-  { day: "Sat", date: "Jan 17", temp: "24° 12°", icon: "cloudy" },
-  { day: "Sun", date: "Jan 18", temp: "22° 10°", icon: "rainy" },
-  { day: "Mon", date: "Jan 19", temp: "19° 8°", icon: "sunny" },
-];
+// Generate week data with proper dates
+function generateWeekData(): DayData[] {
+  const today = new Date();
+  const days: DayData[] = [];
+
+  // Start from 2 days ago
+  for (let i = -2; i <= 4; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const isToday = i === 0;
+    const dayName = isToday ? "Today" : dayNames[date.getDay()];
+    const dateStr = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+    const fullDate = date.toISOString().split('T')[0];
+
+    // Mock weather data
+    const temps = [20, 21, 22, 23, 24, 22, 19];
+    const lows = [10, 9, 10, 11, 12, 10, 8];
+    const icons = ["sunny", "sunny", "sunny", "sunny", "cloudy", "rainy", "sunny"];
+
+    days.push({
+      day: dayName,
+      date: dateStr,
+      fullDate,
+      temp: `${temps[i + 2]}° ${lows[i + 2]}°`,
+      tempValue: temps[i + 2],
+      icon: icons[i + 2],
+      today: isToday,
+    });
+  }
+
+  return days;
+}
+
+const week = generateWeekData();
 
 function getWeatherIcon(icon: string, size: number = 20) {
   if (icon === "sunny") return <span style={{ fontSize: size }}>☀️</span>;
@@ -36,17 +68,56 @@ export default function PlanningPage() {
   const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [result, setResult] = useState<StylingRecommendationResponse | null>(null);
   const [error, setError] = useState("");
+  const [savedOutfits, setSavedOutfits] = useState<Record<string, CalendarOutfit>>({});
+  const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(true);
 
   const idx = Math.max(1, Math.min(carouselIdx, week.length - 2));
   const visible = week.slice(idx - 1, idx + 2);
 
+  // Load saved outfits on mount
+  const fetchSavedOutfits = useCallback(async () => {
+    try {
+      setLoadingSavedOutfits(true);
+      const outfits = await calendarOutfitsService.getAll();
+      const outfitsMap: Record<string, CalendarOutfit> = {};
+      outfits.forEach((outfit) => {
+        outfitsMap[outfit.outfit_date] = outfit;
+      });
+      setSavedOutfits(outfitsMap);
+    } catch (err) {
+      console.error("Failed to load saved outfits:", err);
+    } finally {
+      setLoadingSavedOutfits(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSavedOutfits();
+  }, [fetchSavedOutfits]);
+
   const handleCardClick = (day: DayData) => {
     setSelectedDay(day);
-    setPrompt("");
-    setResult(null);
     setError("");
+
+    // Check if there's a saved outfit for this date
+    const savedOutfit = savedOutfits[day.fullDate];
+    if (savedOutfit) {
+      setPrompt(savedOutfit.prompt);
+      setResult({
+        success: true,
+        prompt: savedOutfit.prompt,
+        selected_categories: savedOutfit.selected_categories,
+        combined_image_url: savedOutfit.combined_image_url,
+        items: savedOutfit.items,
+      });
+    } else {
+      setPrompt("");
+      setResult(null);
+    }
   };
 
   const handleCloseModal = () => {
@@ -76,6 +147,72 @@ export default function PlanningPage() {
     }
   };
 
+  const handleSaveOutfit = async () => {
+    if (!selectedDay || !result || isSaving) return;
+
+    setIsSaving(true);
+    setError("");
+
+    try {
+      await calendarOutfitsService.save({
+        outfit_date: selectedDay.fullDate,
+        combined_image_url: result.combined_image_url,
+        prompt: prompt,
+        temperature: selectedDay.tempValue,
+        selected_categories: result.selected_categories,
+        items: result.items,
+      });
+
+      // Update local state
+      setSavedOutfits((prev) => ({
+        ...prev,
+        [selectedDay.fullDate]: {
+          outfit_date: selectedDay.fullDate,
+          combined_image_url: result.combined_image_url,
+          prompt: prompt,
+          temperature: selectedDay.tempValue,
+          selected_categories: result.selected_categories,
+          items: result.items,
+        },
+      }));
+
+      handleCloseModal();
+    } catch (err) {
+      setError("Failed to save outfit. Please try again.");
+      console.error("Save error:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteOutfit = async () => {
+    if (!selectedDay || isDeleting) return;
+
+    setIsDeleting(true);
+    setError("");
+
+    try {
+      await calendarOutfitsService.delete(selectedDay.fullDate);
+
+      // Update local state
+      setSavedOutfits((prev) => {
+        const updated = { ...prev };
+        delete updated[selectedDay.fullDate];
+        return updated;
+      });
+
+      setResult(null);
+      setPrompt("");
+    } catch (err) {
+      setError("Failed to delete outfit. Please try again.");
+      console.error("Delete error:", err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const hasSavedOutfit = selectedDay ? !!savedOutfits[selectedDay.fullDate] : false;
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <h1 className="text-3xl font-bold tracking-tight text-gray-900">
@@ -103,6 +240,7 @@ export default function PlanningPage() {
         <div className="flex w-full items-center justify-center gap-x-8">
           {visible.map((d, i) => {
             const isCenter = i === 1;
+            const savedOutfit = savedOutfits[d.fullDate];
             const cardClasses = `
               flex flex-col items-center justify-center transition-all duration-300 ease-in-out
               ${isCenter ? "z-10 scale-100" : "z-0 scale-90 opacity-80"}
@@ -146,10 +284,20 @@ export default function PlanningPage() {
                     isCenter ? "shadow-xl" : "shadow-sm"
                   }`}
                 >
-                  <FiCalendar
-                    size={isCenter ? 64 : 56}
-                    className="text-gray-400"
-                  />
+                  {loadingSavedOutfits ? (
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-300" />
+                  ) : savedOutfit ? (
+                    <img
+                      src={savedOutfit.combined_image_url}
+                      alt={`Outfit for ${d.date}`}
+                      className="h-full w-full object-contain p-2"
+                    />
+                  ) : (
+                    <FiCalendar
+                      size={isCenter ? 64 : 56}
+                      className="text-gray-400"
+                    />
+                  )}
                 </div>
               </div>
             );
@@ -200,12 +348,28 @@ export default function PlanningPage() {
                   </div>
                 </div>
               </div>
-              <button
-                onClick={handleCloseModal}
-                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                {hasSavedOutfit && (
+                  <button
+                    onClick={handleDeleteOutfit}
+                    disabled={isDeleting}
+                    className="rounded-lg p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
+                    title="Delete outfit"
+                  >
+                    {isDeleting ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <Trash2 size={20} />
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={handleCloseModal}
+                  className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}
@@ -290,9 +454,9 @@ export default function PlanningPage() {
                 )}
               </div>
 
-              {/* Try Again Button */}
+              {/* Action Buttons */}
               {result && (
-                <div className="mt-4 flex justify-center">
+                <div className="mt-4 flex justify-center gap-3">
                   <Button
                     onClick={() => {
                       setResult(null);
@@ -302,6 +466,38 @@ export default function PlanningPage() {
                   >
                     Try Another Outfit
                   </Button>
+                  {!hasSavedOutfit && (
+                    <Button
+                      onClick={handleSaveOutfit}
+                      disabled={isSaving}
+                      className="rounded-xl bg-gray-900 px-6 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save to Calendar"
+                      )}
+                    </Button>
+                  )}
+                  {hasSavedOutfit && (
+                    <Button
+                      onClick={handleSaveOutfit}
+                      disabled={isSaving}
+                      className="rounded-xl bg-gray-900 px-6 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        "Update Outfit"
+                      )}
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
