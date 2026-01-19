@@ -39,10 +39,9 @@ export default function StylingPage() {
     if (!result) return;
     setIsSaving(true);
     try {
-      await savedImagesService.save({
-        image_id: result.combined_image_url, // Assuming URL can be an ID
-        image_url: result.combined_image_url,
-        prompt: result.prompt,
+      await savedImagesService.saveImage({
+        image_id: result.combined_image_url,
+        note: result.prompt,
       });
       // You might want to show a success message here
     } catch (error) {
