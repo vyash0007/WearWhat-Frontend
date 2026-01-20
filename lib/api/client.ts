@@ -51,6 +51,12 @@ class ApiClient {
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
         if (!response.ok) {
+          // Handle 401 Unauthorized - redirect to login
+          if (response.status === 401) {
+            if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+              window.location.href = '/login';
+            }
+          }
           throw {
             success: false,
             message: 'Server error',
@@ -63,6 +69,14 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle 401 Unauthorized - redirect to login
+        if (response.status === 401) {
+          // Only redirect if we're in the browser and not already on login page
+          if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
+        }
+
         throw {
           success: false,
           message: data.detail || data.message || 'Request failed',

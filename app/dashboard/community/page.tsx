@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FiHeart, FiMessageCircle, FiMoreHorizontal, FiSend, FiBookmark } from "react-icons/fi";
 import { postsService, type Post } from "@/lib/api/posts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,31 +32,22 @@ function getInitials(name: string): string {
 }
 
 export default function CommunityPage() {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [likingPostId, setLikingPostId] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const fetchPosts = async () => {
-    try {
-      setIsLoading(true);
-      setError("");
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["communityPosts"],
+    queryFn: async () => {
       const response = await postsService.getFeed();
       if (response.success) {
-        setPosts(response.posts);
+        return response.posts;
       }
-    } catch (err) {
-      setError("Failed to load posts. Please try again.");
-      console.error("Fetch posts error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      throw new Error("Failed to load posts");
+    },
+  });
+
+  const posts = data ?? [];
 
   const handleLike = async (postId: string) => {
     if (likingPostId) return;
@@ -64,12 +56,14 @@ export default function CommunityPage() {
     try {
       const response = await postsService.like(postId);
       if (response.success) {
-        setPosts((prev) =>
-          prev.map((post) =>
-            post.id === postId
-              ? { ...post, likes_count: response.likes_count }
-              : post
-          )
+        queryClient.setQueryData<Post[]>(["communityPosts"], (oldData) =>
+          oldData
+            ? oldData.map((post) =>
+                post.id === postId
+                  ? { ...post, likes_count: response.likes_count }
+                  : post
+              )
+            : []
         );
       }
     } catch (err) {
@@ -80,13 +74,14 @@ export default function CommunityPage() {
   };
 
   const handleLikeFromModal = (postId: string) => {
-    // Update the post in the list when liked from modal
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId
-          ? { ...post, likes_count: post.likes_count + 1 }
-          : post
-      )
+    queryClient.setQueryData<Post[]>(["communityPosts"], (oldData) =>
+      oldData
+        ? oldData.map((post) =>
+            post.id === postId
+              ? { ...post, likes_count: post.likes_count + 1 }
+              : post
+          )
+        : []
     );
   };
 
@@ -110,9 +105,9 @@ export default function CommunityPage() {
         {/* Error State */}
         {error && !isLoading && (
           <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-red-500 mb-4">{error}</p>
+            <p className="text-red-500 mb-4">{error instanceof Error ? error.message : "Failed to load posts"}</p>
             <button
-              onClick={fetchPosts}
+              onClick={() => refetch()}
               className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
             >
               Try Again
@@ -134,11 +129,11 @@ export default function CommunityPage() {
 
         {/* Posts Grid */}
         {!isLoading && !error && posts.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 max-w-7xl mx-auto px-4">
+          <div className="flex flex-wrap gap-6 pb-8 px-4">
             {posts.map((post) => (
               <div
                 key={post.id}
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-shadow overflow-hidden max-w-sm mx-auto w-full"
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-shadow overflow-hidden w-[350px]"
               >
                 {/* User Header */}
                 <div className="flex items-center gap-2 p-3">

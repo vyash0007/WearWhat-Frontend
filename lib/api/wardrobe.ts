@@ -7,14 +7,12 @@ import type { WardrobeUploadResponse, WardrobeListResponse, WardrobeDeleteRespon
 
 export const wardrobeService = {
   /**
-   * Upload one or more clothing images
-   * Images are auto-tagged by the backend
+   * Upload a single clothing image
+   * Image is auto-tagged by the backend
    */
-  async uploadImages(files: File[]): Promise<WardrobeUploadResponse> {
+  async uploadImage(file: File): Promise<WardrobeUploadResponse> {
     const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
+    formData.append('files', file);
 
     return apiClient.post<WardrobeUploadResponse>('/wardrobe/upload', formData);
   },

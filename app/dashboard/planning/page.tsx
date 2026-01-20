@@ -1,7 +1,8 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
-import { FiCalendar, FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import { X, Send, Trash2, Share2 } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FiCalendar } from "react-icons/fi";
+import { Send, Trash2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { stylingService, type StylingRecommendationResponse } from "@/lib/api/styling";
@@ -74,34 +75,26 @@ export default function PlanningPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [result, setResult] = useState<StylingRecommendationResponse | null>(null);
   const [error, setError] = useState("");
-  const [savedOutfits, setSavedOutfits] = useState<Record<string, CalendarOutfit>>({});
-  const [loadingSavedOutfits, setLoadingSavedOutfits] = useState(true);
   const [showPostModal, setShowPostModal] = useState(false);
   const [postImageUrl, setPostImageUrl] = useState("");
+  const queryClient = useQueryClient();
 
-  const selectedDay = week[selectedDayIndex];
-  const hasSavedOutfit = selectedDay ? !!savedOutfits[selectedDay.fullDate] : false;
-
-  // Load saved outfits on mount
-  const fetchSavedOutfits = useCallback(async () => {
-    try {
-      setLoadingSavedOutfits(true);
+  const { data: savedOutfitsData, isLoading: loadingSavedOutfits } = useQuery({
+    queryKey: ["calendarOutfits"],
+    queryFn: async () => {
       const outfits = await calendarOutfitsService.getAll();
       const outfitsMap: Record<string, CalendarOutfit> = {};
       outfits.forEach((outfit) => {
         outfitsMap[outfit.outfit_date] = outfit;
       });
-      setSavedOutfits(outfitsMap);
-    } catch (err) {
-      console.error("Failed to load saved outfits:", err);
-    } finally {
-      setLoadingSavedOutfits(false);
-    }
-  }, []);
+      return outfitsMap;
+    },
+  });
 
-  useEffect(() => {
-    fetchSavedOutfits();
-  }, [fetchSavedOutfits]);
+  const savedOutfits = savedOutfitsData ?? {};
+
+  const selectedDay = week[selectedDayIndex];
+  const hasSavedOutfit = selectedDay ? !!savedOutfits[selectedDay.fullDate] : false;
 
   useEffect(() => {
     if (selectedDay) {
@@ -157,7 +150,7 @@ export default function PlanningPage() {
         selected_categories: result.selected_categories,
         items: result.items,
       });
-      await fetchSavedOutfits();
+      queryClient.invalidateQueries({ queryKey: ["calendarOutfits"] });
     } catch (err) {
       setError("Failed to save outfit. Please try again.");
       console.error("Save error:", err);
@@ -174,8 +167,9 @@ export default function PlanningPage() {
 
     try {
       await calendarOutfitsService.delete(selectedDay.fullDate);
-      setSavedOutfits((prev) => {
-        const updated = { ...prev };
+      queryClient.setQueryData<Record<string, CalendarOutfit>>(["calendarOutfits"], (oldData) => {
+        if (!oldData) return {};
+        const updated = { ...oldData };
         delete updated[selectedDay.fullDate];
         return updated;
       });
@@ -197,7 +191,7 @@ export default function PlanningPage() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-8rem)] bg-gray-50 dark:bg-gray-900">
       <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-        Outfit Calendar
+        Outfit Planner
       </h1>
       <p className="mt-2 text-gray-500 dark:text-gray-400">
         Plan your outfits for the week with AI-powered suggestions based on weather.
@@ -232,10 +226,15 @@ export default function PlanningPage() {
                 {prompt.toUpperCase() || "EVENT"}
               </h2>
             </div>
-            <div className="text-center">
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">HAPPY HOUR</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">THE HENRY</p>
-            </div>
+            {selectedDay && (
+              <div className="text-center">
+                <div className="text-3xl mb-1">
+                  {selectedDay.icon === "sunny" ? "☀️" : selectedDay.icon === "cloudy" ? "⛅️" : "🌧️"}
+                </div>
+                <p className="text-lg font-bold text-gray-700 dark:text-gray-300">{selectedDay.tempValue}°</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{selectedDay.date}</p>
+              </div>
+            )}
           </div>
 
           {/* Center Content */}
@@ -281,42 +280,47 @@ export default function PlanningPage() {
                  <ShirtLoader size="lg" />
                </div>
             ) : (
-              <div className="grid grid-cols-2 gap-8 min-h-[500px]">
+              <div className="grid grid-cols-2 gap-6 max-h-[calc(100vh-22rem)]">
                 {/* The Fit */}
-                <div className="flex flex-col h-full">
-                  <h3 className="text-center text-2xl font-semibold tracking-widest text-gray-800 dark:text-gray-200 mb-4">THE FIT</h3>
+                <div className="flex flex-col h-full min-h-0">
+                  <h3 className="text-center text-2xl font-semibold tracking-widest text-gray-800 dark:text-gray-200 mb-3">THE FIT</h3>
                   {isLoading ? (
-                     <div className="flex flex-1 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50">
+                     <div className="flex flex-1 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50 min-h-[200px]">
                        <p className="text-gray-500">Generating...</p>
                      </div>
                   ) : result?.items ? (
-                    <div className="grid grid-cols-2 gap-4 rounded-lg bg-gray-100 dark:bg-gray-700/50 p-4 flex-1">
-                      {result.items.map(item => (
-                        <div key={item.id} className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow aspect-square">
-                          <img src={item.image_url} alt={item.category} className="w-full h-full object-cover" />
-                        </div>
-                      ))}
+                    <div className="grid grid-cols-3 grid-rows-2 gap-3 rounded-lg bg-gray-100 dark:bg-gray-700/50 p-3 flex-1 min-h-0">
+                      {/* Reorder items to fill column by column: 0->0, 1->3, 2->1, 3->4, 4->2, 5->5 */}
+                      {[0, 2, 4, 1, 3, 5].map((orderIndex) => {
+                        const item = result.items[orderIndex];
+                        if (!item) return <div key={orderIndex} className="hidden" />;
+                        return (
+                          <div key={item.id} className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow aspect-square">
+                            <img src={item.image_url} alt={item.category} className="w-full h-full object-cover" />
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
-                    <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 min-h-[200px]">
                       <FiCalendar size={48} className="text-gray-300 dark:text-gray-500" />
                     </div>
                   )}
                 </div>
 
                 {/* The Inspo */}
-                <div className="flex flex-col h-full">
-                  <h3 className="text-center text-2xl font-semibold tracking-widest text-gray-800 dark:text-gray-200 mb-4">THE INSPO</h3>
+                <div className="flex flex-col h-full min-h-0">
+                  <h3 className="text-center text-2xl font-semibold tracking-widest text-gray-800 dark:text-gray-200 mb-3">THE INSPO</h3>
                    {isLoading ? (
-                     <div className="flex flex-1 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50">
+                     <div className="flex flex-1 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50 min-h-[200px]">
                         <p className="text-gray-500">Generating...</p>
                      </div>
                   ) : result?.combined_image_url ? (
-                    <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow flex-1">
+                    <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow flex-1 min-h-0 max-h-[320px]">
                       <img src={result.combined_image_url} alt="Outfit inspiration" className="w-full h-full object-contain" />
                     </div>
                   ) : (
-                     <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                     <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 min-h-[200px]">
                        <FiCalendar size={48} className="text-gray-300 dark:text-gray-500" />
                     </div>
                   )}

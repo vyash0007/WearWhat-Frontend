@@ -4,13 +4,14 @@ import React, { useRef, useState, useCallback } from "react";
 import { wardrobeService } from "@/lib/api/wardrobe";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, X, FileImage } from "lucide-react";
+import { Upload, X, FileImage, CheckCircle } from "lucide-react";
 import ShirtLoader from "@/components/ui/ShirtLoader";
 
 export default function NewOutfitModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [images, setImages] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; completed: number[] }>({ current: 0, total: 0, completed: [] });
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,27 +37,46 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
 
     setIsUploading(true);
     setUploadError("");
+    setUploadProgress({ current: 0, total: images.length, completed: [] });
 
-    try {
-      const response = await wardrobeService.uploadImages(images);
-      if (response.success) {
-        setImages([]);
-        onClose();
-      } else {
-        setUploadError("Upload failed. Please try again.");
+    let successCount = 0;
+    const failedIndexes: number[] = [];
+
+    for (let i = 0; i < images.length; i++) {
+      setUploadProgress(prev => ({ ...prev, current: i + 1 }));
+
+      try {
+        const response = await wardrobeService.uploadImage(images[i]);
+        if (response.success) {
+          successCount++;
+          setUploadProgress(prev => ({ ...prev, completed: [...prev.completed, i] }));
+        } else {
+          failedIndexes.push(i);
+        }
+      } catch {
+        failedIndexes.push(i);
       }
-    } catch (error) {
-      const message = (error as { message?: string }).message || "Upload failed. Please try again.";
-      setUploadError(message);
-    } finally {
-      setIsUploading(false);
     }
+
+    if (failedIndexes.length > 0) {
+      setUploadError(`${failedIndexes.length} image(s) failed to upload.`);
+      // Keep only failed images for retry
+      setImages(failedIndexes.map(i => images[i]));
+      setUploadProgress({ current: 0, total: 0, completed: [] });
+    } else {
+      setImages([]);
+      setUploadProgress({ current: 0, total: 0, completed: [] });
+      onClose();
+    }
+
+    setIsUploading(false);
   };
 
   const handleClose = useCallback(() => {
     if (!isUploading) {
       setImages([]);
       setUploadError("");
+      setUploadProgress({ current: 0, total: 0, completed: [] });
       onClose();
     }
   }, [isUploading, onClose]);
@@ -120,7 +140,21 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
               />
             </div>
 
-            <div className="w-full">
+            <div className="w-full space-y-2">
+              {isUploading && uploadProgress.total > 0 && (
+                <div className="w-full">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <span>Uploading {uploadProgress.current} of {uploadProgress.total}</span>
+                    <span>{Math.round((uploadProgress.completed.length / uploadProgress.total) * 100)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(uploadProgress.completed.length / uploadProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
               <Button
                 onClick={handleUpload}
                 disabled={isUploading || images.length === 0}
@@ -129,7 +163,7 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
                 {isUploading ? (
                   <>
                     <ShirtLoader size="sm" />
-                    <span className="ml-2">Uploading...</span>
+                    <span className="ml-2">Uploading {uploadProgress.current}/{uploadProgress.total}...</span>
                   </>
                 ) : (
                   `Upload ${images.length} Item${images.length === 1 ? "" : "s"}`
@@ -153,15 +187,34 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
                         alt={`preview ${index}`}
                         className="h-full w-full rounded-lg object-cover"
                       />
-                      <div className="absolute inset-0 rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button
-                          onClick={() => removeImage(index)}
-                          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40"
-                          aria-label="Remove image"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
+                      {/* Upload status overlay */}
+                      {isUploading && (
+                        <div className={`absolute inset-0 rounded-lg flex items-center justify-center ${
+                          uploadProgress.completed.includes(index)
+                            ? 'bg-green-500/70'
+                            : uploadProgress.current === index + 1
+                              ? 'bg-blue-500/50'
+                              : 'bg-gray-500/30'
+                        }`}>
+                          {uploadProgress.completed.includes(index) ? (
+                            <CheckCircle className="w-8 h-8 text-white" />
+                          ) : uploadProgress.current === index + 1 ? (
+                            <ShirtLoader size="sm" className="text-white" />
+                          ) : null}
+                        </div>
+                      )}
+                      {/* Hover overlay for removal (only when not uploading) */}
+                      {!isUploading && (
+                        <div className="absolute inset-0 rounded-lg bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button
+                            onClick={() => removeImage(index)}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/40"
+                            aria-label="Remove image"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

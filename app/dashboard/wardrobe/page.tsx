@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import NewOutfitModal from "@/components/dashboard/NewOutfitModal";
 import EditImageModal from "@/components/dashboard/EditImageModal";
 import { wardrobeService } from "@/lib/api/wardrobe";
@@ -15,30 +16,21 @@ export default function WardrobePage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
-  const [items, setItems] = useState<WardrobeItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const queryClient = useQueryClient();
 
-  const fetchItems = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError("");
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["wardrobe"],
+    queryFn: async () => {
       const response = await wardrobeService.getItems();
       if (response.success) {
-        setItems(response.items);
+        return response.items;
       }
-    } catch (err) {
-      setError("Failed to load wardrobe items");
-      console.error("Error fetching wardrobe:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+      throw new Error("Failed to load wardrobe items");
+    },
+  });
 
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
+  const items = data ?? [];
 
   const handleEditClick = (item: WardrobeItem) => {
     setSelectedItem(item);
@@ -47,11 +39,13 @@ export default function WardrobePage() {
 
   const handleUploadClose = () => {
     setShowUploadModal(false);
-    fetchItems();
+    queryClient.invalidateQueries({ queryKey: ["wardrobe"] });
   };
 
   const handleDeleteItem = (itemId: string) => {
-    setItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+    queryClient.setQueryData<WardrobeItem[]>(["wardrobe"], (oldData) =>
+      oldData ? oldData.filter((item) => item.id !== itemId) : []
+    );
   };
 
   const formatDate = (dateString?: string) => {
@@ -115,8 +109,8 @@ export default function WardrobePage() {
       {error && (
         <Alert variant="destructive" className="my-5">
           <AlertDescription className="flex items-center justify-between">
-            {error}
-            <Button onClick={fetchItems} variant="secondary">
+            {error instanceof Error ? error.message : "Failed to load wardrobe items"}
+            <Button onClick={() => refetch()} variant="secondary">
               Retry
             </Button>
           </AlertDescription>

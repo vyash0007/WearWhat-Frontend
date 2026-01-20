@@ -1,38 +1,31 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bookmark, SquarePen, X } from "lucide-react";
 import { savedImagesService } from "@/lib/api";
 import type { SavedImage } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert } from "@/components/ui/alert";
 import ShirtLoader from "@/components/ui/ShirtLoader";
 
 export default function SavedPage() {
-  const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState("");
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteError, setNoteError] = useState("");
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchSavedImages = async () => {
-      setIsLoading(true);
-      setError("");
-      try {
-        const data = await savedImagesService.getAll();
-        setSavedImages(Array.isArray(data) ? data : []);
-      } catch (err) {
-        setError("Failed to load saved images");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchSavedImages();
-  }, []);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["savedImages"],
+    queryFn: async () => {
+      const data = await savedImagesService.getAll();
+      return Array.isArray(data) ? data : [];
+    },
+  });
+
+  const savedImages = data ?? [];
 
   const handleNoteSubmit = async (e: React.FormEvent, imgId: string) => {
     e.preventDefault();
@@ -43,10 +36,12 @@ export default function SavedPage() {
     setNoteError("");
     try {
       await savedImagesService.updateNote({ saved_image_id: imgId, note: noteInput });
-      setSavedImages((prev) => prev.map((s) => s.id === imgId ? { ...s, note: noteInput } : s));
+      queryClient.setQueryData<SavedImage[]>(["savedImages"], (oldData) =>
+        oldData ? oldData.map((s) => s.id === imgId ? { ...s, note: noteInput } : s) : []
+      );
       setEditingNoteId(null);
       setNoteInput("");
-    } catch (err) {
+    } catch {
       setNoteError("Failed to save note");
     } finally {
       setNoteLoading(false);
@@ -57,7 +52,9 @@ export default function SavedPage() {
     e.stopPropagation();
     try {
       await savedImagesService.delete(imgId);
-      setSavedImages((prev) => prev.filter((s) => s.id !== imgId));
+      queryClient.setQueryData<SavedImage[]>(["savedImages"], (oldData) =>
+        oldData ? oldData.filter((s) => s.id !== imgId) : []
+      );
     } catch {
       alert("Failed to remove saved image");
     }
@@ -77,7 +74,7 @@ export default function SavedPage() {
             <ShirtLoader size="lg" />
           </div>
         ) : error ? (
-          <Alert variant="destructive">{error}</Alert>
+          <Alert variant="destructive">{error instanceof Error ? error.message : "Failed to load saved images"}</Alert>
         ) : savedImages.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-center text-gray-500 dark:text-gray-400">
             <div>

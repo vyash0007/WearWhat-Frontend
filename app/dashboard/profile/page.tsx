@@ -1,8 +1,11 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { FiHeart, FiMessageCircle, FiTrash2, FiEdit2, FiCamera, FiCheck, FiX } from "react-icons/fi";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FiHeart, FiMessageCircle, FiTrash2, FiEdit2, FiCamera, FiCheck, FiX, FiLogOut } from "react-icons/fi";
 import { postsService, type Post } from "@/lib/api/posts";
 import { userService, type UserProfile } from "@/lib/api/user";
+import { useAuth } from "@/lib/context";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,13 +42,13 @@ function getInitials(firstName: string, lastName: string): string {
 }
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
   const [deletePostId, setDeletePostId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const { logout } = useAuth();
 
   // Edit name state
   const [isEditingName, setIsEditingName] = useState(false);
@@ -57,36 +60,39 @@ export default function ProfilePage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { data: user, isLoading: isLoadingUser, error: userError, refetch: refetchUser } = useQuery({
+    queryKey: ["userProfile"],
+    queryFn: async () => {
+      const response = await userService.getProfile();
+      if (response.success) {
+        return response.user;
+      }
+      throw new Error("Failed to load profile");
+    },
+  });
+
+  const { data: postsData, isLoading: isLoadingPosts, error: postsError, refetch: refetchPosts } = useQuery({
+    queryKey: ["myPosts"],
+    queryFn: async () => {
+      const response = await postsService.getMyPosts();
+      if (response.success) {
+        return response.posts;
+      }
+      throw new Error("Failed to load posts");
+    },
+  });
+
+  const posts = postsData ?? [];
+  const isLoading = isLoadingUser || isLoadingPosts;
+  const error = userError || postsError;
+
+  // Set edit name fields when user data loads
   useEffect(() => {
-    fetchUserAndPosts();
-  }, []);
-
-  const fetchUserAndPosts = async () => {
-    try {
-      setIsLoading(true);
-      setError("");
-
-      const [userResponse, postsResponse] = await Promise.all([
-        userService.getProfile(),
-        postsService.getMyPosts(),
-      ]);
-
-      if (userResponse.success) {
-        setUser(userResponse.user);
-        setEditFirstName(userResponse.user.first_name);
-        setEditLastName(userResponse.user.last_name);
-      }
-
-      if (postsResponse.success) {
-        setPosts(postsResponse.posts);
-      }
-    } catch (err) {
-      setError("Failed to load profile. Please try again.");
-      console.error("Fetch error:", err);
-    } finally {
-      setIsLoading(false);
+    if (user) {
+      setEditFirstName(user.first_name);
+      setEditLastName(user.last_name);
     }
-  };
+  }, [user]);
 
   const handleDelete = async () => {
     if (!deletePostId) return;
@@ -95,7 +101,9 @@ export default function ProfilePage() {
     try {
       const response = await postsService.delete(deletePostId);
       if (response.success) {
-        setPosts((prev) => prev.filter((post) => post.id !== deletePostId));
+        queryClient.setQueryData<Post[]>(["myPosts"], (oldData) =>
+          oldData ? oldData.filter((post) => post.id !== deletePostId) : []
+        );
       }
     } catch (err) {
       console.error("Delete error:", err);
@@ -131,7 +139,7 @@ export default function ProfilePage() {
         last_name: editLastName.trim(),
       });
       if (response.success) {
-        setUser(response.user);
+        queryClient.setQueryData<UserProfile>(["userProfile"], response.user);
         setIsEditingName(false);
       }
     } catch (err) {
@@ -153,7 +161,7 @@ export default function ProfilePage() {
     try {
       const response = await userService.uploadProfileImage(file);
       if (response.success) {
-        setUser(response.user);
+        queryClient.setQueryData<UserProfile>(["userProfile"], response.user);
       }
     } catch (err) {
       console.error("Upload error:", err);
@@ -163,6 +171,24 @@ export default function ProfilePage() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  const refetch = () => {
+    refetchUser();
+    refetchPosts();
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      queryClient.clear();
+      router.push("/");
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      setIsLoggingOut(false);
     }
   };
 
@@ -263,6 +289,23 @@ export default function ProfilePage() {
             {posts.length} {posts.length === 1 ? "post" : "posts"}
           </p>
         </div>
+
+        {/* Logout Button */}
+        <Button
+          variant="outline"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"
+        >
+          {isLoggingOut ? (
+            <ShirtLoader size="sm" />
+          ) : (
+            <>
+              <FiLogOut className="w-4 h-4 mr-2" />
+              Logout
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Posts Section */}
@@ -281,9 +324,9 @@ export default function ProfilePage() {
         {/* Error State */}
         {error && !isLoading && (
           <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-red-500 mb-4">{error}</p>
+            <p className="text-red-500 mb-4">{error instanceof Error ? error.message : "Failed to load profile"}</p>
             <button
-              onClick={fetchUserAndPosts}
+              onClick={() => refetch()}
               className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
             >
               Try Again
@@ -305,11 +348,11 @@ export default function ProfilePage() {
 
         {/* Posts Grid */}
         {!isLoading && !error && posts.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 max-w-7xl mx-auto px-4">
+          <div className="flex flex-wrap gap-6 pb-8 px-4">
             {posts.map((post) => (
               <div
                 key={post.id}
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-shadow overflow-hidden max-w-sm mx-auto w-full"
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-shadow overflow-hidden w-[350px]"
               >
                 {/* User Header */}
                 <div className="flex items-center gap-2 p-3">
