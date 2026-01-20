@@ -1,13 +1,14 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
 import { FiCalendar, FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import { X, Send, Loader2, Trash2, Share2 } from "lucide-react";
+import { X, Send, Trash2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { stylingService, type StylingRecommendationResponse } from "@/lib/api/styling";
 import { calendarOutfitsService, type CalendarOutfit } from "@/lib/api/calendarOutfits";
 import { cn } from "@/lib/utils";
 import PostOutfitModal from "@/components/dashboard/PostOutfitModal";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 interface DayData {
   day: string;
@@ -66,8 +67,7 @@ function getWeatherIcon(icon: string, size: number = 20) {
 }
 
 export default function PlanningPage() {
-  const [carouselIdx, setCarouselIdx] = useState(2);
-  const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(2);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,8 +79,8 @@ export default function PlanningPage() {
   const [showPostModal, setShowPostModal] = useState(false);
   const [postImageUrl, setPostImageUrl] = useState("");
 
-  const idx = Math.max(1, Math.min(carouselIdx, week.length - 2));
-  const visible = week.slice(idx - 1, idx + 2);
+  const selectedDay = week[selectedDayIndex];
+  const hasSavedOutfit = selectedDay ? !!savedOutfits[selectedDay.fullDate] : false;
 
   // Load saved outfits on mount
   const fetchSavedOutfits = useCallback(async () => {
@@ -102,37 +102,26 @@ export default function PlanningPage() {
   useEffect(() => {
     fetchSavedOutfits();
   }, [fetchSavedOutfits]);
-  
-  // ... (keep the rest of the component logic the same)
 
-  const handleCardClick = (day: DayData) => {
-    setSelectedDay(day);
-    setError("");
-
-    // Check if there's a saved outfit for this date
-    const savedOutfit = savedOutfits[day.fullDate];
-    if (savedOutfit) {
-      setPrompt(savedOutfit.prompt);
-      setResult({
-        success: true,
-        prompt: savedOutfit.prompt,
-        selected_categories: savedOutfit.selected_categories,
-        combined_image_url: savedOutfit.combined_image_url,
-        items: savedOutfit.items,
-      });
-    } else {
-      setPrompt("");
-      setResult(null);
+  useEffect(() => {
+    if (selectedDay) {
+      const savedOutfit = savedOutfits[selectedDay.fullDate];
+      if (savedOutfit) {
+        setPrompt(savedOutfit.prompt);
+        setResult({
+          success: true,
+          prompt: savedOutfit.prompt,
+          selected_categories: savedOutfit.selected_categories,
+          combined_image_url: savedOutfit.combined_image_url,
+          items: savedOutfit.items,
+        });
+      } else {
+        setPrompt("");
+        setResult(null);
+      }
+      setError("");
     }
-  };
-
-  const handleCloseModal = () => {
-    setSelectedDay(null);
-    setPrompt("");
-    setResult(null);
-    setError("");
-    setIsLoading(false);
-  };
+  }, [selectedDay, savedOutfits]);
 
   const handleGenerateOutfit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -168,11 +157,7 @@ export default function PlanningPage() {
         selected_categories: result.selected_categories,
         items: result.items,
       });
-
-      // Refetch saved outfits to get complete data from server
       await fetchSavedOutfits();
-
-      handleCloseModal();
     } catch (err) {
       setError("Failed to save outfit. Please try again.");
       console.error("Save error:", err);
@@ -189,14 +174,11 @@ export default function PlanningPage() {
 
     try {
       await calendarOutfitsService.delete(selectedDay.fullDate);
-
-      // Update local state
       setSavedOutfits((prev) => {
         const updated = { ...prev };
         delete updated[selectedDay.fullDate];
         return updated;
       });
-
       setResult(null);
       setPrompt("");
     } catch (err) {
@@ -207,293 +189,186 @@ export default function PlanningPage() {
     }
   };
 
-  const hasSavedOutfit = selectedDay ? !!savedOutfits[selectedDay.fullDate] : false;
-
   const handlePostClick = (imageUrl: string) => {
     setPostImageUrl(imageUrl);
     setShowPostModal(true);
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex flex-col min-h-[calc(100vh-8rem)] bg-gray-50 dark:bg-gray-900">
       <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
         Outfit Calendar
       </h1>
       <p className="mt-2 text-gray-500 dark:text-gray-400">
         Plan your outfits for the week with AI-powered suggestions based on weather.
       </p>
-      <div className="relative mt-8 flex flex-1 items-center justify-center">
-        {/* Left arrow */}
-        <Button
-          onClick={() => setCarouselIdx((idx) => Math.max(idx - 1, 1))}
-          disabled={carouselIdx <= 1}
-          aria-label="Previous day"
-          variant="outline"
-          size="icon"
-          className="absolute left-0 top-1/2 -translate-y-1/2 transform rounded-full"
-        >
-          <FiChevronLeft className="h-6 w-6" />
-        </Button>
-        <div className="flex w-full items-center justify-center gap-x-8">
-          {visible.map((d, i) => {
-            const isCenter = i === 1;
-            const savedOutfit = savedOutfits[d.fullDate];
-            return (
-              <div key={d.day + d.date} className={cn("flex flex-col items-center justify-center transition-all duration-300 ease-in-out", isCenter ? "z-10 scale-100" : "z-0 scale-90 opacity-70")}>
-                <div className="mb-3 flex flex-col items-center">
-                  <div
-                    className={cn("relative text-center font-semibold", isCenter ? "text-lg" : "text-base", d.today ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400")}
-                  >
-                    {d.today && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-gray-900 dark:text-gray-100">
-                        •
-                      </span>
-                    )}
-                    {d.day}
-                  </div>
-                  <div
-                    className={cn("mt-1 text-xs", isCenter ? "text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500")}
-                  >
-                    {d.date}
-                  </div>
-                  <div className="mt-2 flex items-center gap-1">
-                    {getWeatherIcon(d.icon)}
-                    <span
-                      className={cn("text-xs", isCenter ? "text-gray-500 dark:text-gray-400" : "text-gray-400 dark:text-gray-500")}
-                    >
-                      {d.temp}
-                    </span>
-                  </div>
+
+      {/* Day Selector */}
+      <div className="mt-6 flex justify-center gap-2">
+        {week.map((day, index) => (
+          <button
+            key={day.fullDate}
+            onClick={() => setSelectedDayIndex(index)}
+            className={cn(
+              "rounded-lg px-4 py-2 text-center transition-all duration-200",
+              selectedDayIndex === index
+                ? "bg-gray-900 text-white shadow-md dark:bg-gray-100 dark:text-gray-900"
+                : "bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            )}
+          >
+            <div className="font-semibold">{day.day}</div>
+            <div className="text-xs">{day.date}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <div className="mt-6 flex-1 rounded-2xl bg-white dark:bg-gray-800 shadow-lg p-8 overflow-y-auto mb-6 mx-6">
+        <div className="grid grid-cols-12 gap-8 h-full">
+          {/* Left Vertical Text */}
+          <div className="col-span-1 flex flex-col items-center justify-between">
+            <div className="flex-1 flex items-center">
+              <h2 className="text-5xl font-bold text-gray-300 dark:text-gray-600" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+                {prompt.toUpperCase() || "EVENT"}
+              </h2>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">HAPPY HOUR</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">THE HENRY</p>
+            </div>
+          </div>
+
+          {/* Center Content */}
+          <div className="col-span-11">
+            {/* Prompt Input */}
+            <form onSubmit={handleGenerateOutfit} className="mb-6">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                What's your plan for this day?
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Input
+                    type="text"
+                    placeholder="e.g., office meeting, casual brunch, date night..."
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    disabled={isLoading}
+                    className="h-12 px-4 text-base rounded-xl border-gray-300 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 shadow-sm focus:border-gray-900 focus:ring-gray-900"
+                  />
                 </div>
-                <div
-                  onClick={() => handleCardClick(d)}
-                  className={cn("flex h-96 w-72 cursor-pointer items-center justify-center overflow-hidden rounded-xl border bg-white dark:bg-gray-800 transition-all duration-300 ease-in-out hover:border-gray-400 dark:hover:border-gray-500", isCenter ? "shadow-xl dark:shadow-2xl" : "shadow-sm dark:shadow-md", savedOutfit ? "border-gray-300 dark:border-gray-600" : "border-dashed border-gray-200 dark:border-gray-700")}
+                <Button
+                  type="submit"
+                  disabled={!prompt.trim() || isLoading}
+                  className="h-12 px-5 rounded-xl"
                 >
-                  {loadingSavedOutfits ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-gray-300 dark:text-gray-600" />
-                  ) : savedOutfit ? (
-                    <img
-                      src={savedOutfit.combined_image_url}
-                      alt={`Outfit for ${d.date}`}
-                      className="h-full w-full object-contain p-2"
-                    />
+                  {isLoading ? (
+                    <ShirtLoader size="sm" />
                   ) : (
-                    <FiCalendar
-                      size={isCenter ? 56 : 48}
-                      className="text-gray-300 dark:text-gray-600"
-                    />
+                    <Send className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
+            </form>
+
+            {error && (
+              <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            {loadingSavedOutfits ? (
+               <div className="flex min-h-[20vh] items-center justify-center pt-20">
+                 <ShirtLoader size="lg" />
+               </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-8 min-h-[500px]">
+                {/* The Fit */}
+                <div className="flex flex-col h-full">
+                  <h3 className="text-center text-2xl font-semibold tracking-widest text-gray-800 dark:text-gray-200 mb-4">THE FIT</h3>
+                  {isLoading ? (
+                     <div className="flex flex-1 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50">
+                       <p className="text-gray-500">Generating...</p>
+                     </div>
+                  ) : result?.items ? (
+                    <div className="grid grid-cols-2 gap-4 rounded-lg bg-gray-100 dark:bg-gray-700/50 p-4 flex-1">
+                      {result.items.map(item => (
+                        <div key={item.id} className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow aspect-square">
+                          <img src={item.image_url} alt={item.category} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                      <FiCalendar size={48} className="text-gray-300 dark:text-gray-500" />
+                    </div>
+                  )}
+                </div>
+
+                {/* The Inspo */}
+                <div className="flex flex-col h-full">
+                  <h3 className="text-center text-2xl font-semibold tracking-widest text-gray-800 dark:text-gray-200 mb-4">THE INSPO</h3>
+                   {isLoading ? (
+                     <div className="flex flex-1 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50">
+                        <p className="text-gray-500">Generating...</p>
+                     </div>
+                  ) : result?.combined_image_url ? (
+                    <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow flex-1">
+                      <img src={result.combined_image_url} alt="Outfit inspiration" className="w-full h-full object-contain" />
+                    </div>
+                  ) : (
+                     <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                       <FiCalendar size={48} className="text-gray-300 dark:text-gray-500" />
+                    </div>
                   )}
                 </div>
               </div>
-            );
-          })}
-        </div>
-        {/* Right arrow */}
-        <Button
-          onClick={() =>
-            setCarouselIdx((idx) => Math.min(idx + 1, week.length - 2))
-          }
-          disabled={carouselIdx >= week.length - 2}
-          aria-label="Next day"
-          variant="outline"
-          size="icon"
-          className="absolute right-0 top-1/2 -translate-y-1/2 transform rounded-full"
-        >
-          <FiChevronRight className="h-6 w-6" />
-        </Button>
-      </div>
+            )}
 
-      {/* Modal */}
-      {selectedDay && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={handleCloseModal}
-        >
-          <div
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 py-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  {getWeatherIcon(selectedDay.icon, 28)}
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {selectedDay.today ? "Today" : selectedDay.day}, {selectedDay.date}
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedDay.temp}</p>
-                  </div>
+            {/* Action Buttons */}
+            {result && !isLoading && (
+              <div className="mt-6 flex items-center justify-between">
+                <div>
+                  {hasSavedOutfit && (
+                     <Button
+                      onClick={handleDeleteOutfit}
+                      disabled={isDeleting}
+                      variant="ghost"
+                      className="text-red-600 hover:bg-red-50 dark:text-red-500 dark:hover:bg-red-900/20"
+                    >
+                      {isDeleting ? <ShirtLoader size="sm" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                      Delete
+                    </Button>
+                  )}
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {hasSavedOutfit && (
-                  <Button
-                    onClick={handleDeleteOutfit}
-                    disabled={isDeleting}
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/50 dark:hover:text-red-400 disabled:opacity-50"
-                    title="Delete outfit"
-                  >
-                    {isDeleting ? (
-                      <Loader2 size={20} className="animate-spin" />
-                    ) : (
-                      <Trash2 size={20} />
-                    )}
-                  </Button>
-                )}
-                <Button
-                  onClick={handleCloseModal}
-                  variant="ghost"
-                  size="icon"
-                  className="text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-                >
-                  <X size={20} />
-                </Button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="overflow-y-auto p-6" style={{ maxHeight: "calc(90vh - 80px)" }}>
-              {/* Prompt Input */}
-              <form onSubmit={handleGenerateOutfit} className="mb-6">
-                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  What&apos;s your plan for this day?
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <Input
-                      type="text"
-                      placeholder="e.g., office meeting, casual brunch, date night..."
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      disabled={isLoading}
-                      className="h-12 px-4 text-base rounded-xl border-gray-300 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 shadow-sm focus:border-gray-900 focus:ring-gray-900"
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={!prompt.trim() || isLoading}
-                    className="h-12 px-5 rounded-xl"
-                  >
-                    {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
-                  </Button>
-                </div>
-              </form>
-
-              {/* Error */}
-              {error && (
-                <div className="mb-6 rounded-lg bg-red-50 dark:bg-red-900/50 p-4 text-red-600 dark:text-red-400 text-sm">
-                  {error}
-                </div>
-              )}
-
-              {/* Image Space */}
-              <div className="rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 overflow-hidden">
-                {isLoading ? (
-                  <div className="flex h-80 flex-col items-center justify-center gap-4">
-                    <div className="relative">
-                      <div className="h-12 w-12 rounded-full border-4 border-gray-200 dark:border-gray-700"></div>
-                      <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-gray-900 dark:border-gray-100 border-t-transparent animate-spin"></div>
-                    </div>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">Generating your outfit...</p>
-                  </div>
-                ) : result ? (
-                  <div>
-                    <img
-                      src={result.combined_image_url}
-                      alt="Generated outfit"
-                      className="w-full h-auto max-h-96 object-contain bg-white dark:bg-gray-800"
-                    />
-                    {/* Selected Categories */}
-                    <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                        Selected Items
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {result.selected_categories.map((category) => (
-                          <span
-                            key={category}
-                            className="rounded-full bg-gray-900 dark:bg-gray-100 px-3 py-1 text-xs font-medium text-white dark:text-gray-900"
-                          >
-                            {category}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex h-80 flex-col items-center justify-center gap-3 text-gray-400 dark:text-gray-500">
-                    <FiCalendar size={48} />
-                    <p className="text-sm">Your outfit will appear here</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              {result && (
-                <div className="mt-4 flex justify-center gap-3">
+                <div className="flex gap-3">
                   <Button
                     onClick={() => {
                       setResult(null);
                       setPrompt("");
                     }}
                     variant="outline"
-                    className="rounded-xl px-6 py-2"
                   >
-                    Try Another Outfit
+                    Try Another
                   </Button>
                   <Button
                     onClick={() => handlePostClick(result.combined_image_url)}
                     variant="outline"
-                    className="rounded-xl px-6 py-2"
                   >
                     <Share2 className="mr-2 h-4 w-4" />
                     Post
                   </Button>
-                  {!hasSavedOutfit && (
-                    <Button
-                      onClick={handleSaveOutfit}
-                      disabled={isSaving}
-                      className="rounded-xl px-6 py-2"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save to Calendar"
-                      )}
-                    </Button>
-                  )}
-                  {hasSavedOutfit && (
-                    <Button
-                      onClick={handleSaveOutfit}
-                      disabled={isSaving}
-                      className="rounded-xl px-6 py-2"
-                    >
-                      {isSaving ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Updating...
-                        </>
-                      ) : (
-                        "Update Outfit"
-                      )}
-                    </Button>
-                  )}
+                  <Button onClick={handleSaveOutfit} disabled={isSaving}>
+                    {isSaving ? (
+                      <ShirtLoader size="sm" />
+                    ) : null}
+                    {hasSavedOutfit ? 'Update Outfit' : 'Save to Calendar'}
+                  </Button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
 
       {/* Post Modal */}
       <PostOutfitModal

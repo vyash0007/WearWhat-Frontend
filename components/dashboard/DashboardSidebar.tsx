@@ -18,7 +18,7 @@ export default function DashboardSidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="w-64 min-h-screen flex flex-col p-4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+        <aside className="w-64 h-screen flex flex-col p-4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed left-0 top-0">
             <div className="flex items-center gap-2 px-4 mb-8">
                 <h1 className="text-xl font-bold">WearWhat</h1>
             </div>

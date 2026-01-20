@@ -2,11 +2,11 @@
 
 import React from "react";
 import { FiSend, FiMic } from "react-icons/fi";
-import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { chatService, type ChatMessage } from "@/lib/api/chat";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 type Message = {
   from: 'bot' | 'user';
@@ -125,11 +125,7 @@ export default function StyleChatPage() {
                 <AvatarFallback>AI</AvatarFallback>
               </Avatar>
               <div className="rounded-2xl rounded-bl-none border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 shadow-sm">
-                <div className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                  <span className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                  <span className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                </div>
+                <ShirtLoader size="sm" />
               </div>
             </div>
           )}
@@ -164,7 +160,7 @@ export default function StyleChatPage() {
             className="rounded-full bg-gray-900 dark:bg-blue-600 text-white hover:bg-gray-800 dark:hover:bg-blue-500 disabled:opacity-50"
           >
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <ShirtLoader size="sm" />
             ) : (
               <FiSend className="h-5 w-5" />
             )}

@@ -4,7 +4,8 @@ import React, { useRef, useState, useCallback } from "react";
 import { wardrobeService } from "@/lib/api/wardrobe";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, X, FileImage, Loader2 } from "lucide-react";
+import { Upload, X, FileImage } from "lucide-react";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 export default function NewOutfitModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [images, setImages] = useState<File[]>([]);
@@ -127,8 +128,8 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
               >
                 {isUploading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
+                    <ShirtLoader size="sm" />
+                    <span className="ml-2">Uploading...</span>
                   </>
                 ) : (
                   `Upload ${images.length} Item${images.length === 1 ? "" : "s"}`

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2, Share2, Check } from "lucide-react";
+import { X, Share2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { postsService } from "@/lib/api/posts";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 interface PostOutfitModalProps {
   open: boolean;
@@ -132,8 +133,8 @@ export default function PostOutfitModal({ open, onClose, imageUrl, onSuccess }: 
               </>
             ) : isPosting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Posting...
+                <ShirtLoader size="sm" />
+                <span className="ml-2">Posting...</span>
               </>
             ) : (
               <>

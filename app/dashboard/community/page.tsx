@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
-import { FiHeart, FiMessageCircle } from "react-icons/fi";
-import { Loader2 } from "lucide-react";
+import { FiHeart, FiMessageCircle, FiMoreHorizontal, FiSend, FiBookmark } from "react-icons/fi";
 import { postsService, type Post } from "@/lib/api/posts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import CommentsModal from "@/components/dashboard/CommentsModal";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
@@ -99,11 +99,11 @@ export default function CommunityPage() {
         Share your favorite outfits and get inspired by others
       </p>
 
-      <div className="mt-8 flex-1 overflow-y-auto">
+      <div className="mt-8 flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-900">
         {/* Loading State */}
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <div className="flex items-center justify-center min-h-[20vh] pt-20">
+            <ShirtLoader size="lg" />
           </div>
         )}
 
@@ -134,72 +134,117 @@ export default function CommunityPage() {
 
         {/* Posts Grid */}
         {!isLoading && !error && posts.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 max-w-7xl mx-auto px-4">
             {posts.map((post) => (
               <div
                 key={post.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md"
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-shadow overflow-hidden max-w-sm mx-auto w-full"
               >
                 {/* User Header */}
-                <div className="flex items-center gap-3 p-4">
-                  <Avatar className="w-10 h-10">
+                <div className="flex items-center gap-2 p-3">
+                  <Avatar className="w-8 h-8 ring-2 ring-gray-200 dark:ring-gray-700">
                     {post.user_profile_image && (
                       <AvatarImage src={post.user_profile_image} alt={post.user_name} />
                     )}
-                    <AvatarFallback className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white font-semibold text-sm">
                       {getInitials(post.user_name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
                       {post.user_name}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {formatTimeAgo(post.created_at)}
-                    </p>
                   </div>
+                  <button className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors">
+                    <FiMoreHorizontal className="w-5 h-5" />
+                  </button>
                 </div>
 
-                {/* Content */}
-                {post.text && (
-                  <div className="px-4 pb-3">
-                    <p className="text-gray-700 dark:text-gray-300">{post.text}</p>
-                  </div>
-                )}
-
-                {/* Image - clickable to open comments */}
+                {/* Image */}
                 <div
-                  className="bg-gray-50 dark:bg-gray-900/50 cursor-pointer"
+                  className="bg-white dark:bg-gray-900 cursor-pointer aspect-[4/3] relative group overflow-hidden"
+                  onDoubleClick={() => handleLike(post.id)}
                   onClick={() => setSelectedPost(post)}
                 >
                   <img
                     src={post.image_url}
-                    alt="Outfit"
-                    className="w-full"
+                    alt="Outfit post"
+                    className="w-full h-full object-contain"
                   />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-6 p-4 border-t border-gray-100 dark:border-gray-700">
-                  <button
-                    onClick={() => handleLike(post.id)}
-                    disabled={likingPostId === post.id}
-                    className="flex items-center gap-2 text-gray-500 hover:text-red-500 transition-colors disabled:opacity-50"
-                  >
-                    {likingPostId === post.id ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <FiHeart className="w-5 h-5" />
-                    )}
-                    <span className="text-sm font-medium">{post.likes_count}</span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPost(post)}
-                    className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors"
-                  >
-                    <FiMessageCircle className="w-5 h-5" />
-                    <span className="text-sm font-medium">{post.comments_count}</span>
-                  </button>
+                {/* Actions & Details */}
+                <div className="p-3">
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => handleLike(post.id)}
+                        disabled={likingPostId === post.id}
+                        className="text-gray-700 dark:text-gray-300 hover:text-red-500 hover:scale-110 transition-all disabled:opacity-50"
+                      >
+                        {likingPostId === post.id ? (
+                          <ShirtLoader size="sm" />
+                        ) : (
+                          <FiHeart className="w-6 h-6" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setSelectedPost(post)}
+                        className="text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:scale-110 transition-all"
+                      >
+                        <FiMessageCircle className="w-6 h-6" />
+                      </button>
+                      <button className="text-gray-700 dark:text-gray-300 hover:text-green-500 hover:scale-110 transition-all">
+                        <FiSend className="w-6 h-6" />
+                      </button>
+                    </div>
+                    <button className="text-gray-700 dark:text-gray-300 hover:text-yellow-500 hover:scale-110 transition-all">
+                      <FiBookmark className="w-6 h-6" />
+                    </button>
+                  </div>
+
+                  {/* Likes Count */}
+                  <div className="mb-2">
+                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                      {post.likes_count.toLocaleString()} likes
+                    </p>
+                  </div>
+
+                  {/* Caption */}
+                  {post.text && (
+                    <div className="mb-2">
+                      <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                        <span className="font-semibold mr-1">{post.user_name}</span>
+                        {post.text.split(' ').map((word, i) => {
+                          if (word.startsWith('#')) {
+                            return (
+                              <span key={i} className="text-blue-600 dark:text-blue-400 font-medium">
+                                {word}{' '}
+                              </span>
+                            );
+                          }
+                          return <span key={i}>{word} </span>;
+                        })}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* View Comments */}
+                  {post.comments_count > 0 && (
+                    <button
+                      onClick={() => setSelectedPost(post)}
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                    >
+                      View all {post.comments_count} comments
+                    </button>
+                  )}
+
+                  {/* Timestamp */}
+                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                    {formatTimeAgo(post.created_at)}
+                  </p>
                 </div>
               </div>
             ))}

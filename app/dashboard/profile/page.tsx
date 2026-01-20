@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { FiHeart, FiMessageCircle, FiTrash2, FiEdit2, FiCamera, FiCheck, FiX } from "react-icons/fi";
-import { Loader2 } from "lucide-react";
 import { postsService, type Post } from "@/lib/api/posts";
 import { userService, type UserProfile } from "@/lib/api/user";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import CommentsModal from "@/components/dashboard/CommentsModal";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 function formatTimeAgo(dateString: string): string {
   const date = new Date(dateString);
@@ -188,7 +188,7 @@ export default function ProfilePage() {
             className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
           >
             {isUploadingImage ? (
-              <Loader2 className="w-6 h-6 text-white animate-spin" />
+              <ShirtLoader size="sm" className="text-white" />
             ) : (
               <FiCamera className="w-6 h-6 text-white" />
             )}
@@ -226,7 +226,7 @@ export default function ProfilePage() {
                 className="text-green-600 hover:text-green-700 hover:bg-green-50"
               >
                 {isSavingName ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <ShirtLoader size="sm" />
                 ) : (
                   <FiCheck className="w-4 h-4" />
                 )}
@@ -273,8 +273,8 @@ export default function ProfilePage() {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <div className="flex items-center justify-center min-h-[20vh] pt-20">
+            <ShirtLoader size="lg" />
           </div>
         )}
 
@@ -305,17 +305,27 @@ export default function ProfilePage() {
 
         {/* Posts Grid */}
         {!isLoading && !error && posts.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8 max-w-7xl mx-auto px-4">
             {posts.map((post) => (
               <div
                 key={post.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md"
+                className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-shadow overflow-hidden max-w-sm mx-auto w-full"
               >
-                {/* Header with delete button */}
-                <div className="flex items-center justify-between p-4">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {formatTimeAgo(post.created_at)}
-                  </p>
+                {/* User Header */}
+                <div className="flex items-center gap-2 p-3">
+                  <Avatar className="w-8 h-8 ring-2 ring-gray-200 dark:ring-gray-700">
+                    {user?.profile_image_url && (
+                      <AvatarImage src={user.profile_image_url} alt={userName} />
+                    )}
+                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white font-semibold text-sm">
+                      {user ? getInitials(user.first_name, user.last_name) : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                      {userName}
+                    </h3>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -326,38 +336,78 @@ export default function ProfilePage() {
                   </Button>
                 </div>
 
-                {/* Content */}
-                {post.text && (
-                  <div className="px-4 pb-3">
-                    <p className="text-gray-700 dark:text-gray-300">{post.text}</p>
-                  </div>
-                )}
-
-                {/* Image - clickable to open comments */}
+                {/* Image */}
                 <div
-                  className="bg-gray-50 dark:bg-gray-900/50 cursor-pointer"
+                  className="bg-white dark:bg-gray-900 cursor-pointer aspect-[4/3] relative group overflow-hidden"
                   onClick={() => setSelectedPost(post)}
                 >
                   <img
                     src={post.image_url}
-                    alt="Outfit"
-                    className="w-full"
+                    alt="Outfit post"
+                    className="w-full h-full object-contain"
                   />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
                 </div>
 
-                {/* Stats */}
-                <div className="flex items-center gap-6 p-4 border-t border-gray-100 dark:border-gray-700">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <FiHeart className="w-5 h-5" />
-                    <span className="text-sm font-medium">{post.likes_count}</span>
+                {/* Actions & Details */}
+                <div className="p-3">
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-4">
+                      <button
+                        className="text-gray-700 dark:text-gray-300 hover:text-red-500 hover:scale-110 transition-all"
+                      >
+                        <FiHeart className="w-6 h-6" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedPost(post)}
+                        className="text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:scale-110 transition-all"
+                      >
+                        <FiMessageCircle className="w-6 h-6" />
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setSelectedPost(post)}
-                    className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors"
-                  >
-                    <FiMessageCircle className="w-5 h-5" />
-                    <span className="text-sm font-medium">{post.comments_count}</span>
-                  </button>
+
+                  {/* Likes Count */}
+                  <div className="mb-2">
+                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">
+                      {post.likes_count.toLocaleString()} likes
+                    </p>
+                  </div>
+
+                  {/* Caption */}
+                  {post.text && (
+                    <div className="mb-2">
+                      <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+                        <span className="font-semibold mr-1">{userName}</span>
+                        {post.text.split(' ').map((word, i) => {
+                          if (word.startsWith('#')) {
+                            return (
+                              <span key={i} className="text-blue-600 dark:text-blue-400 font-medium">
+                                {word}{' '}
+                              </span>
+                            );
+                          }
+                          return <span key={i}>{word} </span>;
+                        })}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* View Comments */}
+                  {post.comments_count > 0 && (
+                    <button
+                      onClick={() => setSelectedPost(post)}
+                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                    >
+                      View all {post.comments_count} comments
+                    </button>
+                  )}
+
+                  {/* Timestamp */}
+                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                    {formatTimeAgo(post.created_at)}
+                  </p>
                 </div>
               </div>
             ))}
@@ -383,8 +433,8 @@ export default function ProfilePage() {
             >
               {isDeleting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
+                  <ShirtLoader size="sm" />
+                  <span className="ml-2">Deleting...</span>
                 </>
               ) : (
                 "Delete"
@@ -401,6 +451,7 @@ export default function ProfilePage() {
           onClose={() => setSelectedPost(null)}
           post={selectedPost}
           onLike={() => {}}
+          currentUserId={user?.id}
         />
       )}
     </div>

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Bookmark, SquarePen, Loader2, X } from "lucide-react";
+import { Bookmark, SquarePen, X } from "lucide-react";
 import { savedImagesService } from "@/lib/api";
 import type { SavedImage } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 export default function SavedPage() {
   const [savedImages, setSavedImages] = useState<SavedImage[]>([]);
@@ -73,10 +73,8 @@ export default function SavedPage() {
       </p>
       <div className="mt-8 flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {Array.from({ length: 12 }).map((_, index) => (
-              <Skeleton key={index} className="aspect-square w-full rounded-lg" />
-            ))}
+          <div className="flex items-center justify-center min-h-[20vh] pt-20">
+            <ShirtLoader size="lg" />
           </div>
         ) : error ? (
           <Alert variant="destructive">{error}</Alert>
@@ -89,7 +87,7 @@ export default function SavedPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {savedImages.map((img) => (
               <div
                 key={img.id}
@@ -126,7 +124,7 @@ export default function SavedPage() {
                             className="h-7"
                             disabled={noteLoading || !noteInput.trim()}
                           >
-                            {noteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+                            {noteLoading ? <ShirtLoader size="sm" /> : "Save"}
                           </Button>
                           <Button
                             type="button"

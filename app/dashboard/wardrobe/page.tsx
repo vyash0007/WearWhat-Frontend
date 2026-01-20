@@ -7,9 +7,9 @@ import { wardrobeService } from "@/lib/api/wardrobe";
 import type { WardrobeItem } from "@/lib/api/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SquarePen, Plus } from "lucide-react";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 export default function WardrobePage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -125,10 +125,8 @@ export default function WardrobePage() {
 
       <div className="mt-8 flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {Array.from({ length: 12 }).map((_, index) => (
-              <Skeleton key={index} className="aspect-square w-full rounded-lg" />
-            ))}
+          <div className="flex items-center justify-center min-h-[20vh] pt-20">
+            <ShirtLoader size="lg" />
           </div>
         ) : !error && items.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-center">

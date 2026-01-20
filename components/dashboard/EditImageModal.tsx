@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Bookmark, Trash2, Loader2, Check } from "lucide-react";
+import { X, Bookmark, Trash2, Check } from "lucide-react";
 import type { WardrobeItem } from "@/lib/api/types";
 import { ATTRIBUTE_LABELS } from "@/lib/api/types";
 import { wardrobeService } from "@/lib/api/wardrobe";
@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 interface EditImageModalProps {
   open: boolean;
@@ -131,7 +132,7 @@ export default function EditImageModal({ open, onClose, item, onDelete }: EditIm
                 }`}
               >
                 {isSaving ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <ShirtLoader size="sm" />
                 ) : saveSuccess ? (
                   <Check className="h-5 w-5 text-green-500" />
                 ) : (
@@ -229,8 +230,8 @@ export default function EditImageModal({ open, onClose, item, onDelete }: EditIm
             <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting
+                  <ShirtLoader size="sm" />
+                  <span className="ml-2">Deleting</span>
                 </>
               ) : (
                 "Delete"

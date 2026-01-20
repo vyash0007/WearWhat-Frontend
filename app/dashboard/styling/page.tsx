@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Send, Loader2, Bookmark, Share2 } from "lucide-react";
+import { Send, Bookmark, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { stylingService, type StylingRecommendationResponse } from "@/lib/api/styling";
 import { savedImagesService } from "@/lib/api";
 import PostOutfitModal from "@/components/dashboard/PostOutfitModal";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 export default function StylingPage() {
   const [prompt, setPrompt] = useState("");
@@ -91,7 +92,7 @@ export default function StylingPage() {
             className="h-12 px-6 rounded-xl"
           >
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <ShirtLoader size="sm" />
             ) : (
               <Send className="h-5 w-5" />
             )}
@@ -108,12 +109,9 @@ export default function StylingPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="mt-12 flex flex-1 flex-col items-center justify-center">
+        <div className="mt-12 flex flex-1 flex-col items-center justify-center min-h-[20vh] pt-20">
           <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <div className="h-16 w-16 rounded-full border-4 border-gray-200 dark:border-gray-700"></div>
-              <div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-gray-900 dark:border-gray-100 border-t-transparent animate-spin"></div>
-            </div>
+            <ShirtLoader size="lg" />
             <p className="text-gray-500 dark:text-gray-400 font-medium">Creating your perfect outfit...</p>
           </div>
         </div>
@@ -163,7 +161,7 @@ export default function StylingPage() {
                 className="rounded-full"
               >
                 {isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <ShirtLoader size="sm" />
                 ) : (
                   <Bookmark className="h-4 w-4" />
                 )}

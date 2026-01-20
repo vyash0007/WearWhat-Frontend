@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/context/AuthContext";
 import { Header } from "@/components/Header/header";
 import { Footer } from "@/components/Footer/footer";
 import { Button } from "@/components/ui/button";
+import ShirtLoader from "@/components/ui/ShirtLoader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -102,7 +103,14 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full bg-black text-white hover:bg-gray-800 py-3 rounded-lg font-semibold transition-all disabled:opacity-50"
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <ShirtLoader size="sm" />
+                    Signing in...
+                  </span>
+                ) : (
+                  "Sign in"
+                )}
               </Button>
             </form>
 
