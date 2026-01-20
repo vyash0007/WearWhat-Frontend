@@ -18,7 +18,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push("/dashboard");
+      router.push("/dashboard/wardrobe");
     }
   }, [isAuthenticated, isLoading, router]);
 

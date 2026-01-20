@@ -76,7 +76,7 @@ export default function SignupPage() {
     });
 
     if (result.success) {
-      router.push("/dashboard");
+      router.push("/dashboard/wardrobe");
     } else {
       setApiError(result.message || "Signup failed. Please try again.");
       setIsLoading(false);
