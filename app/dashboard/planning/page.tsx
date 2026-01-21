@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FiCalendar } from "react-icons/fi";
+import { IoPartlySunny } from "react-icons/io5";
 import { Send, Trash2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,7 @@ function generateWeekData(): DayData[] {
 const week = generateWeekData();
 
 function getWeatherIcon(icon: string, size: number = 20) {
-  if (icon === "sunny") return <span style={{ fontSize: size }}>☀️</span>;
+  if (icon === "sunny") return <IoPartlySunny style={{ fontSize: size }} className="text-yellow-400" />;
   if (icon === "cloudy") return <span style={{ fontSize: size }}>⛅️</span>;
   if (icon === "rainy") return <span style={{ fontSize: size }}>🌧️</span>;
   return null;
@@ -229,7 +230,7 @@ export default function PlanningPage() {
             {selectedDay && (
               <div className="text-center">
                 <div className="text-3xl mb-1">
-                  {selectedDay.icon === "sunny" ? "☀️" : selectedDay.icon === "cloudy" ? "⛅️" : "🌧️"}
+                  {selectedDay.icon === "sunny" ? <IoPartlySunny className="text-yellow-400" /> : selectedDay.icon === "cloudy" ? "⛅️" : "🌧️"}
                 </div>
                 <p className="text-lg font-bold text-gray-700 dark:text-gray-300">{selectedDay.tempValue}°</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{selectedDay.date}</p>
