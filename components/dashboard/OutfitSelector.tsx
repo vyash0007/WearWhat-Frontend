@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Check, X, Filter, Sparkles } from "lucide-react";
+import { Check, X, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { WardrobeItem } from "@/lib/api/types";
@@ -151,7 +151,6 @@ export default function OutfitSelector({
                 disabled={isLoading}
                 className="rounded-xl"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
                 {isLoading ? "Loading..." : "Get Suggestions"}
               </Button>
             )}
@@ -177,11 +176,10 @@ export default function OutfitSelector({
               return (
                 <div
                   key={item.id}
-                  className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                    selected
-                      ? "border-gray-900 dark:border-gray-100 ring-2 ring-gray-900/20 dark:ring-gray-100/20"
-                      : "border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
-                  }`}
+                  className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${selected
+                    ? "border-gray-900 dark:border-gray-100 ring-2 ring-gray-900/20 dark:ring-gray-100/20"
+                    : "border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
+                    }`}
                   onClick={() => toggleSelection(item)}
                 >
                   <img

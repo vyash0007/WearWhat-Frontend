@@ -7,7 +7,7 @@ import { ArrowUpRight } from "lucide-react"
 export function HeroSection() {
   return (
     <div className="flex flex-col relative z-20 min-w-[200%]">
-      <div className="flex flex-col font-sans font-black tracking-[-0.02em] leading-[0.85] text-[5rem] md:text-[7rem] lg:text-[10rem] select-none">
+      <div className="flex flex-col font-sans font-black tracking-[-0.05em] sm:tracking-[-0.02em] leading-[0.85] text-[14vw] sm:text-[5rem] md:text-[7rem] lg:text-[10rem] select-none">
         <h1 className="text-black uppercase">
           Get
         </h1>
@@ -21,7 +21,7 @@ export function HeroSection() {
           Right Gear
         </h1>
       </div>
-      
+
       <div className="mt-12 flex items-center gap-2 absolute bottom-0 left-0">
         <button className="text-xs md:text-sm font-bold tracking-[0.1em] uppercase flex items-center gap-1 hover:gap-2 transition-all text-black hover:text-gray-800">
           Start Styling for Free

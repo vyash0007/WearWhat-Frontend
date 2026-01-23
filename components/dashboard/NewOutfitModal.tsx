@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, X, FileImage, CheckCircle } from "lucide-react";
 import ShirtLoader from "@/components/ui/ShirtLoader";
 
-export default function NewOutfitModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function NewOutfitModal({ open, onClose, onSuccess }: { open: boolean; onClose: () => void; onSuccess?: () => void }) {
   const [images, setImages] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -66,6 +66,7 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
     } else {
       setImages([]);
       setUploadProgress({ current: 0, total: 0, completed: [] });
+      onSuccess?.();
       onClose();
     }
 
@@ -112,9 +113,8 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
             )}
 
             <div
-              className={`relative w-full cursor-pointer rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-8 text-center transition-colors hover:border-blue-500 dark:hover:border-blue-400 ${
-                isUploading ? "cursor-not-allowed opacity-60" : ""
-              }`}
+              className={`relative w-full cursor-pointer rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 p-8 text-center transition-colors hover:border-blue-500 dark:hover:border-blue-400 ${isUploading ? "cursor-not-allowed opacity-60" : ""
+                }`}
               onClick={() => !isUploading && inputRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
@@ -189,13 +189,12 @@ export default function NewOutfitModal({ open, onClose }: { open: boolean; onClo
                       />
                       {/* Upload status overlay */}
                       {isUploading && (
-                        <div className={`absolute inset-0 rounded-lg flex items-center justify-center ${
-                          uploadProgress.completed.includes(index)
-                            ? 'bg-green-500/70'
-                            : uploadProgress.current === index + 1
-                              ? 'bg-blue-500/50'
-                              : 'bg-gray-500/30'
-                        }`}>
+                        <div className={`absolute inset-0 rounded-lg flex items-center justify-center ${uploadProgress.completed.includes(index)
+                          ? 'bg-green-500/70'
+                          : uploadProgress.current === index + 1
+                            ? 'bg-blue-500/50'
+                            : 'bg-gray-500/30'
+                          }`}>
                           {uploadProgress.completed.includes(index) ? (
                             <CheckCircle className="w-8 h-8 text-white" />
                           ) : uploadProgress.current === index + 1 ? (

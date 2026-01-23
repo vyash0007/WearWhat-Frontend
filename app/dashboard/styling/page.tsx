@@ -1,323 +1,292 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Bookmark, Share2, ChevronRight, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { wardrobeService } from "@/lib/api/wardrobe";
-import { stylingService, type StyleRecommendationResponse, type MatchedItem } from "@/lib/api/styling";
-import { savedImagesService } from "@/lib/api";
-import PostOutfitModal from "@/components/dashboard/PostOutfitModal";
-import OutfitSelector from "@/components/dashboard/OutfitSelector";
-import ShirtLoader from "@/components/ui/ShirtLoader";
-import type { WardrobeItem } from "@/lib/api/types";
+import { useState, useEffect } from "react"
+import Image from "next/image"
+import { Search, ChevronRight, Check, X, Loader2 } from "lucide-react"
+import ShirtLoader from "@/components/ui/ShirtLoader"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { wardrobeService } from "@/lib/api/wardrobe"
+import { stylingService } from "@/lib/api/styling"
+import type { WardrobeItem } from "@/lib/api/types"
+import type { StyleRecommendationResponse } from "@/lib/api/styling"
+
+const categories = ["upperWear", "bottomWear", "outerWear", "footwear", "otherItems"]
+const categoryLabels: Record<string, string> = {
+    upperWear: "Upper Wear",
+    bottomWear: "Bottom Wear",
+    outerWear: "Outer Wear",
+    footwear: "Footwear",
+    otherItems: "Other Items",
+}
 
 export default function StylingPage() {
-  const [step, setStep] = useState<"select" | "result">("select");
-  const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState<StyleRecommendationResponse | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showPostModal, setShowPostModal] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("")
+    const [selectedCategory, setSelectedCategory] = useState("upperWear")
+    const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null)
+    const [step, setStep] = useState<1 | 2>(1)
+    const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([])
+    const [loading, setLoading] = useState(true)
+    const [loadingRecommendation, setLoadingRecommendation] = useState(false)
+    const [recommendation, setRecommendation] = useState<StyleRecommendationResponse | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
-  // Fetch wardrobe items
-  const { data: wardrobeData, isLoading: isLoadingWardrobe } = useQuery({
-    queryKey: ["wardrobe"],
-    queryFn: async () => {
-      const response = await wardrobeService.getItems();
-      if (response.success) {
-        return response.items;
-      }
-      throw new Error("Failed to load wardrobe items");
-    },
-  });
+    useEffect(() => {
+        fetchWardrobeItems()
+    }, [])
 
-  const wardrobeItems = wardrobeData ?? [];
-
-  const handleGetRecommendation = async () => {
-    if (!selectedItem || isLoading) return;
-
-    setIsLoading(true);
-    setError("");
-    setResult(null);
-
-    try {
-      const response = await stylingService.getStyleRecommendation(selectedItem.id);
-      setResult(response);
-      setStep("result");
-    } catch (err) {
-      setError("Failed to get recommendation. Please try again.");
-      console.error("Styling error:", err);
-    } finally {
-      setIsLoading(false);
+    const fetchWardrobeItems = async () => {
+        try {
+            setLoading(true)
+            setError(null)
+            const response = await wardrobeService.getItems()
+            setWardrobeItems(response.items)
+        } catch (err: any) {
+            console.error("Error fetching wardrobe items:", err)
+            setError(err.message || "Failed to load wardrobe items")
+        } finally {
+            setLoading(false)
+        }
     }
-  };
 
-  const handleSave = async () => {
-    if (!result) return;
-    setIsSaving(true);
-    try {
-      await savedImagesService.saveImage({
-        image_url: result.combined_image_url,
-      });
-    } catch (error) {
-      console.error("Failed to save image:", error);
-    } finally {
-      setIsSaving(false);
+    const handleGetSuggestions = async () => {
+        if (!selectedItem) return
+
+        try {
+            setLoadingRecommendation(true)
+            const result = await stylingService.getStyleRecommendation(selectedItem.id)
+            setRecommendation(result)
+            setStep(2)
+        } catch (err: any) {
+            console.error("Error getting recommendations:", err)
+            alert("Failed to get style recommendations. Please try again.")
+        } finally {
+            setLoadingRecommendation(false)
+        }
     }
-  };
 
-  const handleStartOver = () => {
-    setStep("select");
-    setSelectedItem(null);
-    setResult(null);
-    setError("");
-  };
+    const filteredItems = wardrobeItems.filter((item) => {
+        const matchesSearch = item.category.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesCategory = item.categoryGroup === selectedCategory
+        return matchesSearch && matchesCategory
+    })
 
-  const getCategoryGroupLabel = (group: string) => {
-    const labels: Record<string, string> = {
-      upperWear: "Upper Wear",
-      bottomWear: "Bottom Wear",
-      outerWear: "Outer Wear",
-      footwear: "Footwear",
-      otherItems: "Accessories",
-      accessories: "Accessories",
-    };
-    return labels[group] || group;
-  };
+    if (step === 2 && recommendation) {
+        return (
+            <div className="min-h-screen p-4 md:p-6 lg:p-8">
+                <div className="max-w-7xl mx-auto space-y-6">
+                    {/* Header */}
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">AI Styling Results</h1>
+                            </div>
+                            <p className="text-muted-foreground">
+                                Here are outfit suggestions based on your selected item
+                            </p>
+                        </div>
+                        <Button variant="outline" onClick={() => { setStep(1); setRecommendation(null); setSelectedItem(null); }}>
+                            Try Another
+                        </Button>
+                    </div>
 
-  const getMatchScoreLabel = (score: number) => {
-    if (score >= 0.9) return "Perfect Match";
-    if (score >= 0.8) return "Great Match";
-    if (score >= 0.7) return "Good Match";
-    return "Suggested";
-  };
+                    {/* Combined Outfit Image */}
+                    <div className="bg-card rounded-2xl border border-border p-6">
+                        <h2 className="text-lg font-semibold mb-4">Complete Outfit</h2>
+                        <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
+                            <Image
+                                src={recommendation.combined_image_url}
+                                alt="Complete outfit"
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
+                    </div>
 
-  const getMatchScoreColor = (score: number) => {
-    if (score >= 0.9) return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-    if (score >= 0.8) return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
-    if (score >= 0.7) return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-    return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400";
-  };
-
-  return (
-    <main className="flex h-full flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-            AI Styling
-          </h1>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
-            {step === "select" && "Select an item from your wardrobe to get outfit suggestions"}
-            {step === "result" && "Your personalized outfit recommendation"}
-          </p>
-        </div>
-
-        {/* Step indicator */}
-        <div className="hidden sm:flex items-center gap-2 text-sm">
-          <span
-            className={`px-3 py-1 rounded-full ${
-              step === "select"
-                ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
-                : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-            }`}
-          >
-            1. Select
-          </span>
-          <ChevronRight className="h-4 w-4 text-gray-400" />
-          <span
-            className={`px-3 py-1 rounded-full ${
-              step === "result"
-                ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
-                : "bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-            }`}
-          >
-            2. Result
-          </span>
-        </div>
-      </div>
-
-      {/* Step 1: Select Item */}
-      {step === "select" && (
-        <div className="flex-1 flex flex-col min-h-0">
-          {isLoadingWardrobe ? (
-            <div className="flex-1 flex items-center justify-center">
-              <ShirtLoader size="lg" />
-            </div>
-          ) : wardrobeItems.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <div className="text-6xl mb-4">👕</div>
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                Your wardrobe is empty
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">
-                Add items to your wardrobe first to start styling
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 min-h-0">
-                <OutfitSelector
-                  items={wardrobeItems}
-                  selectedItem={selectedItem}
-                  onSelectionChange={setSelectedItem}
-                  onGetSuggestions={handleGetRecommendation}
-                  isLoading={isLoading}
-                />
-              </div>
-
-              {/* Error */}
-              {error && (
-                <div className="mt-4 rounded-lg bg-red-50 dark:bg-red-900/50 p-4 text-red-600 dark:text-red-400">
-                  {error}
+                    {/* Matched Items */}
+                    <div className="bg-card rounded-2xl border border-border p-6">
+                        <h2 className="text-lg font-semibold mb-4">Outfit Items ({recommendation.total_items})</h2>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {recommendation.matched_items.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className={cn(
+                                        "relative bg-muted/50 rounded-xl overflow-hidden",
+                                        item.is_source && "ring-2 ring-primary"
+                                    )}
+                                >
+                                    <div className="relative aspect-square">
+                                        <Image
+                                            src={item.image_url}
+                                            alt={item.category}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                    <div className="p-2">
+                                        <p className="text-xs font-medium truncate">{item.category}</p>
+                                        {item.is_source && (
+                                            <Badge variant="default" className="mt-1 text-xs">Selected</Badge>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Step 2: Results */}
-      {step === "result" && result && (
-        <div className="flex-1 overflow-y-auto pb-8">
-          {/* Back button */}
-          <Button
-            variant="ghost"
-            onClick={handleStartOver}
-            className="mb-4"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Start Over
-          </Button>
-
-          {/* Combined Image */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                Your Styled Outfit
-              </h3>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setShowPostModal(true)}
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                >
-                  <Share2 className="h-4 w-4 mr-1" />
-                  Post
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                >
-                  {isSaving ? (
-                    <ShirtLoader size="sm" />
-                  ) : (
-                    <Bookmark className="h-4 w-4 mr-1" />
-                  )}
-                  {isSaving ? "Saving..." : "Save"}
-                </Button>
-              </div>
             </div>
-            <div className="overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
-              <img
-                src={result.combined_image_url}
-                alt="Combined outfit"
-                className="w-full max-h-[400px] object-contain bg-gray-50 dark:bg-gray-800/50"
-              />
-            </div>
-          </div>
+        )
+    }
 
-          {/* Source Item */}
-          <div className="mb-6">
-            <h3 className="mb-3 text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Your Selected Item
-            </h3>
-            <div className="inline-block overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm border-2 border-gray-900 dark:border-gray-100">
-              <div className="w-28 h-28 bg-gray-50 dark:bg-gray-700/50 p-3">
-                <img
-                  src={result.source_item.image_url}
-                  alt={result.source_item.category}
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              <div className="p-3">
-                <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                  {result.source_item.category}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {getCategoryGroupLabel(result.source_item.categoryGroup)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Matched Items */}
-          <div className="mb-6">
-            <h3 className="mb-4 text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-              Matched Items ({result.matched_items.filter(item => !item.is_source).length})
-            </h3>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {result.matched_items
-                .filter((item) => !item.is_source)
-                .map((item: MatchedItem) => (
-                  <div
-                    key={item.id}
-                    className="group overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 transition-shadow hover:shadow-md"
-                  >
-                    <div className="aspect-square bg-gray-50 dark:bg-gray-700/50 p-3 relative">
-                      <img
-                        src={item.image_url}
-                        alt={item.category}
-                        className="h-full w-full object-contain"
-                      />
-                      {/* Match score badge */}
-                      <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-medium ${getMatchScoreColor(item.match_score)}`}>
-                        {Math.round(item.match_score * 100)}%
-                      </div>
+    return (
+        <div className="min-h-screen p-4 md:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">AI Styling</h1>
+                        </div>
+                        <p className="text-muted-foreground">
+                            Select an item from your wardrobe to get outfit suggestions
+                        </p>
                     </div>
-                    <div className="p-3">
-                      <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                        {item.category}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {getCategoryGroupLabel(item.categoryGroup)}
-                      </p>
-                      <span className={`mt-2 inline-block rounded-md px-2 py-1 text-xs ${getMatchScoreColor(item.match_score)}`}>
-                        {getMatchScoreLabel(item.match_score)}
-                      </span>
+
+                    {/* Step Indicator */}
+                    <div className="flex items-center gap-2 bg-card rounded-full px-4 py-2 border border-border">
+                        <Badge variant="default" className="rounded-full">
+                            1. Select
+                        </Badge>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <Badge variant="secondary" className="rounded-full">
+                            2. Result
+                        </Badge>
                     </div>
-                  </div>
-                ))}
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search items..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 bg-card border-border"
+                    />
+                </div>
+
+                {/* Category Filter */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {categories.map((category) => (
+                        <Button
+                            key={category}
+                            variant={selectedCategory === category ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedCategory(category)}
+                            className={cn(
+                                "rounded-full whitespace-nowrap flex-shrink-0",
+                                selectedCategory === category && "shadow-lg shadow-primary/20"
+                            )}
+                        >
+                            {categoryLabels[category]}
+                        </Button>
+                    ))}
+                </div>
+
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <ShirtLoader size="xl" />
+                        <p className="text-muted-foreground mt-4">Loading your wardrobe...</p>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && !loading && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                            <X className="h-8 w-8 text-destructive" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">Failed to load items</h3>
+                        <p className="text-muted-foreground mt-1">{error}</p>
+                        <Button onClick={fetchWardrobeItems} className="mt-4">Try Again</Button>
+                    </div>
+                )}
+
+                {/* Items Grid */}
+                {!loading && !error && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                        {filteredItems.map((item) => (
+                            <button
+                                key={item.id}
+                                onClick={() => setSelectedItem(selectedItem?.id === item.id ? null : item)}
+                                className={cn(
+                                    "group relative bg-card rounded-2xl border overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 text-left",
+                                    selectedItem?.id === item.id
+                                        ? "border-primary ring-2 ring-primary/20 shadow-lg shadow-primary/10"
+                                        : "border-border hover:-translate-y-1"
+                                )}
+                            >
+                                <div className="relative aspect-square bg-muted/50">
+                                    <Image
+                                        src={item.image_url}
+                                        alt={item.category}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                                    {/* Selection Indicator */}
+                                    {selectedItem?.id === item.id && (
+                                        <div className="absolute top-2 right-2 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
+                                            <Check className="h-4 w-4 text-primary-foreground" />
+                                        </div>
+                                    )}
+
+                                    {/* Item Name Overlay */}
+                                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                                        <h3 className="font-medium text-sm text-white truncate">{item.category}</h3>
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Action Button */}
+                {selectedItem && !loading && (
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 lg:static lg:translate-x-0 lg:flex lg:justify-center lg:pt-4">
+                        <Button
+                            size="lg"
+                            className="gap-2 shadow-2xl shadow-primary/30 px-8"
+                            onClick={handleGetSuggestions}
+                            disabled={loadingRecommendation}
+                        >
+                            {loadingRecommendation ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Getting Suggestions...
+                                </>
+                            ) : (
+                                "Get AI Suggestions"
+                            )}
+                        </Button>
+                    </div>
+                )}
+
+                {/* Empty State */}
+                {!loading && !error && filteredItems.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <Search className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">No items found</h3>
+                        <p className="text-muted-foreground mt-1">Try a different category or search term</p>
+                    </div>
+                )}
             </div>
-          </div>
-
-          {/* Try Again Button */}
-          <div className="flex justify-center">
-            <Button
-              onClick={handleStartOver}
-              variant="outline"
-              className="rounded-xl px-6 py-3"
-            >
-              Try Another Item
-            </Button>
-          </div>
         </div>
-      )}
-
-      {/* Post Modal */}
-      {result && (
-        <PostOutfitModal
-          open={showPostModal}
-          onClose={() => setShowPostModal(false)}
-          imageUrl={result.combined_image_url}
-        />
-      )}
-    </main>
-  );
+    )
 }

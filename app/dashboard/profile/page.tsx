@@ -1,502 +1,283 @@
-"use client";
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiHeart, FiMessageCircle, FiTrash2, FiEdit2, FiCamera, FiCheck, FiX, FiLogOut } from "react-icons/fi";
-import { postsService, type Post } from "@/lib/api/posts";
-import { userService, type UserProfile } from "@/lib/api/user";
-import { useAuth } from "@/lib/context";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+"use client"
+
+import { useState, useEffect } from "react"
+import Image from "next/image"
+import { Camera, LogOut, Edit3, Heart, MessageCircle, MoreHorizontal, Trash2, Settings, Crown, X } from "lucide-react"
+import ShirtLoader from "@/components/ui/ShirtLoader"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import CommentsModal from "@/components/dashboard/CommentsModal";
-import ShirtLoader from "@/components/ui/ShirtLoader";
-
-function formatTimeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins} min ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-  return date.toLocaleDateString();
-}
-
-function getInitials(firstName: string, lastName: string): string {
-  return `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
-}
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
+import { userService } from "@/lib/api/user"
+import { postsService } from "@/lib/api/posts"
+import { authService } from "@/lib/api/auth"
+import { savedImagesService } from "@/lib/api/savedImages"
+import type { UserProfile } from "@/lib/api/user"
+import type { Post } from "@/lib/api/posts"
+import { useRouter } from "next/navigation"
+import { PostCard } from "@/components/social/PostCard"
+import { PostDetail } from "@/components/social/PostDetail"
 
 export default function ProfilePage() {
-  const [deletePostId, setDeletePostId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const queryClient = useQueryClient();
-  const router = useRouter();
-  const { logout } = useAuth();
+    const router = useRouter()
+    const [activeTab, setActiveTab] = useState<"posts" | "saved">("posts")
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+    const [userPosts, setUserPosts] = useState<Post[]>([])
+    const [savedCount, setSavedCount] = useState(0)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [selectedPost, setSelectedPost] = useState<Post | null>(null)
+    const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  // Edit name state
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [editFirstName, setEditFirstName] = useState("");
-  const [editLastName, setEditLastName] = useState("");
-  const [isSavingName, setIsSavingName] = useState(false);
+    useEffect(() => {
+        fetchProfileData()
+    }, [])
 
-  // Profile image upload
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+    const fetchProfileData = async () => {
+        try {
+            setLoading(true)
+            setError(null)
 
-  const { data: user, isLoading: isLoadingUser, error: userError, refetch: refetchUser } = useQuery({
-    queryKey: ["userProfile"],
-    queryFn: async () => {
-      const response = await userService.getProfile();
-      if (response.success) {
-        return response.user;
-      }
-      throw new Error("Failed to load profile");
-    },
-  });
+            // Fetch user profile
+            const profileResponse = await userService.getProfile()
+            setUserProfile(profileResponse.user)
 
-  const { data: postsData, isLoading: isLoadingPosts, error: postsError, refetch: refetchPosts } = useQuery({
-    queryKey: ["myPosts"],
-    queryFn: async () => {
-      const response = await postsService.getMyPosts();
-      if (response.success) {
-        return response.posts;
-      }
-      throw new Error("Failed to load posts");
-    },
-  });
+            // Fetch user's posts
+            const postsResponse = await postsService.getMyPosts(20, 0)
+            setUserPosts(postsResponse.posts)
 
-  const posts = postsData ?? [];
-  const isLoading = isLoadingUser || isLoadingPosts;
-  const error = userError || postsError;
-
-  // Set edit name fields when user data loads
-  useEffect(() => {
-    if (user) {
-      setEditFirstName(user.first_name);
-      setEditLastName(user.last_name);
+            // Fetch saved images count
+            const savedImages = await savedImagesService.getAll()
+            setSavedCount(savedImages.length)
+        } catch (err: any) {
+            console.error("Error fetching profile data:", err)
+            setError(err.message || "Failed to load profile")
+        } finally {
+            setLoading(false)
+        }
     }
-  }, [user]);
 
-  const handleDelete = async () => {
-    if (!deletePostId) return;
-
-    setIsDeleting(true);
-    try {
-      const response = await postsService.delete(deletePostId);
-      if (response.success) {
-        queryClient.setQueryData<Post[]>(["myPosts"], (oldData) =>
-          oldData ? oldData.filter((post) => post.id !== deletePostId) : []
-        );
-      }
-    } catch (err) {
-      console.error("Delete error:", err);
-    } finally {
-      setIsDeleting(false);
-      setDeletePostId(null);
+    const handleLogout = async () => {
+        try {
+            await authService.logout()
+            router.push("/login")
+        } catch (err) {
+            console.error("Error logging out:", err)
+            // Still redirect to login even if logout fails
+            router.push("/login")
+        }
     }
-  };
 
-  const handleStartEditName = () => {
-    if (user) {
-      setEditFirstName(user.first_name);
-      setEditLastName(user.last_name);
-      setIsEditingName(true);
+    const handleDeletePost = async (postId: string) => {
+        try {
+            await postsService.delete(postId)
+            setUserPosts(prev => prev.filter(post => post.id !== postId))
+        } catch (err) {
+            console.error("Error deleting post:", err)
+            alert("Failed to delete post")
+        }
     }
-  };
 
-  const handleCancelEditName = () => {
-    setIsEditingName(false);
-    if (user) {
-      setEditFirstName(user.first_name);
-      setEditLastName(user.last_name);
+    const getInitials = (firstName: string, lastName: string) => {
+        return `${firstName[0]}${lastName[0]}`.toUpperCase()
     }
-  };
 
-  const handleSaveName = async () => {
-    if (!editFirstName.trim() || !editLastName.trim()) return;
+    const getTimeAgo = (dateString: string) => {
+        const date = new Date(dateString)
+        const now = new Date()
+        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-    setIsSavingName(true);
-    try {
-      const response = await userService.updateProfile({
-        first_name: editFirstName.trim(),
-        last_name: editLastName.trim(),
-      });
-      if (response.success) {
-        queryClient.setQueryData<UserProfile>(["userProfile"], response.user);
-        setIsEditingName(false);
-      }
-    } catch (err) {
-      console.error("Update name error:", err);
-    } finally {
-      setIsSavingName(false);
+        if (seconds < 60) return 'just now'
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+        if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`
+        return `${Math.floor(seconds / 604800)}w ago`
     }
-  };
 
-  const handleImageClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingImage(true);
-    try {
-      const response = await userService.uploadProfileImage(file);
-      if (response.success) {
-        queryClient.setQueryData<UserProfile>(["userProfile"], response.user);
-      }
-    } catch (err) {
-      console.error("Upload error:", err);
-    } finally {
-      setIsUploadingImage(false);
-      // Reset input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const refetch = () => {
-    refetchUser();
-    refetchPosts();
-  };
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      queryClient.clear();
-      router.push("/");
-    } catch (err) {
-      console.error("Logout error:", err);
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
-
-  const userName = user ? `${user.first_name} ${user.last_name}` : "User";
-
-  return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* Profile Header */}
-      <div className="flex items-center gap-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-        {/* Profile Image with upload */}
-        <div className="relative group">
-          <Avatar className="w-24 h-24">
-            {user?.profile_image_url && (
-              <AvatarImage src={user.profile_image_url} alt={userName} />
-            )}
-            <AvatarFallback className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-2xl font-semibold">
-              {user ? getInitials(user.first_name, user.last_name) : "U"}
-            </AvatarFallback>
-          </Avatar>
-          <button
-            onClick={handleImageClick}
-            disabled={isUploadingImage}
-            className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-          >
-            {isUploadingImage ? (
-              <ShirtLoader size="sm" className="text-white" />
-            ) : (
-              <FiCamera className="w-6 h-6 text-white" />
-            )}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
-            className="hidden"
-          />
-        </div>
-
-        {/* User Info */}
-        <div className="flex-1">
-          {isEditingName ? (
-            <div className="flex items-center gap-2">
-              <Input
-                value={editFirstName}
-                onChange={(e) => setEditFirstName(e.target.value)}
-                placeholder="First name"
-                className="w-32"
-              />
-              <Input
-                value={editLastName}
-                onChange={(e) => setEditLastName(e.target.value)}
-                placeholder="Last name"
-                className="w-32"
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleSaveName}
-                disabled={isSavingName || !editFirstName.trim() || !editLastName.trim()}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-              >
-                {isSavingName ? (
-                  <ShirtLoader size="sm" />
-                ) : (
-                  <FiCheck className="w-4 h-4" />
-                )}
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleCancelEditName}
-                disabled={isSavingName}
-                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-              >
-                <FiX className="w-4 h-4" />
-              </Button>
+    if (loading) {
+        return (
+            <div className="min-h-screen p-4 md:p-6 lg:p-8">
+                <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-16">
+                    <ShirtLoader size="xl" />
+                    <p className="text-muted-foreground mt-4">Loading profile...</p>
+                </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-                {userName}
-              </h1>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={handleStartEditName}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <FiEdit2 className="w-4 h-4" />
-              </Button>
+        )
+    }
+
+    if (error || !userProfile) {
+        return (
+            <div className="min-h-screen p-4 md:p-6 lg:p-8">
+                <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                        <X className="h-8 w-8 text-destructive" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Failed to load profile</h3>
+                    <p className="text-muted-foreground mt-1">{error}</p>
+                    <Button onClick={fetchProfileData} className="mt-4">Try Again</Button>
+                </div>
             </div>
-          )}
-          <p className="mt-1 text-gray-500 dark:text-gray-400">
-            {user?.email}
-          </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500">
-            {posts.length} {posts.length === 1 ? "post" : "posts"}
-          </p>
-        </div>
+        )
+    }
 
-        {/* Logout Button */}
-        <Button
-          variant="outline"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"
-        >
-          {isLoggingOut ? (
-            <ShirtLoader size="sm" />
-          ) : (
-            <>
-              <FiLogOut className="w-4 h-4 mr-2" />
-              Logout
-            </>
-          )}
-        </Button>
-      </div>
+    return (
+        <div className="min-h-screen p-4 md:p-6 lg:p-8">
+            <div className="max-w-4xl mx-auto space-y-6">
+                {/* Profile Header */}
+                <div className="bg-card rounded-2xl border border-border p-6 md:p-8">
+                    <div className="flex flex-col md:flex-row md:items-start gap-6">
+                        {/* Avatar */}
+                        <div className="relative group">
+                            <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-background shadow-xl">
+                                {userProfile.profile_image_url ? (
+                                    <AvatarImage src={userProfile.profile_image_url} alt={`${userProfile.first_name} ${userProfile.last_name}`} />
+                                ) : null}
+                                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                                    {getInitials(userProfile.first_name, userProfile.last_name)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Camera className="h-4 w-4" />
+                            </button>
+                        </div>
 
-      {/* Posts Section */}
-      <div className="mt-6 flex-1 overflow-y-auto">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          My Posts
-        </h2>
+                        {/* Profile Info */}
+                        <div className="flex-1 space-y-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                                            {userProfile.first_name} {userProfile.last_name}
+                                        </h1>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-muted-foreground">{userProfile.email}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button variant="outline" className="gap-2 bg-transparent">
+                                        <Settings className="h-4 w-4" />
+                                        Settings
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="gap-2 text-destructive hover:text-destructive bg-transparent"
+                                        onClick={handleLogout}
+                                    >
+                                        <LogOut className="h-4 w-4" />
+                                        Logout
+                                    </Button>
+                                </div>
+                            </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center min-h-[20vh] pt-20">
-            <ShirtLoader size="lg" />
-          </div>
-        )}
+                            {/* Stats */}
+                            <div className="flex gap-6">
+                                <div className="text-center">
+                                    <p className="text-2xl font-bold text-foreground">{userPosts.length}</p>
+                                    <p className="text-sm text-muted-foreground">Posts</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-bold text-foreground">{savedCount}</p>
+                                    <p className="text-sm text-muted-foreground">Saved</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-bold text-foreground">0</p>
+                                    <p className="text-sm text-muted-foreground">Followers</p>
+                                </div>
+                            </div>
 
-        {/* Error State */}
-        {error && !isLoading && (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-red-500 mb-4">{error instanceof Error ? error.message : "Failed to load profile"}</p>
-            <button
-              onClick={() => refetch()}
-              className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!isLoading && !error && posts.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-gray-500 dark:text-gray-400 text-lg mb-2">
-              No posts yet
-            </p>
-            <p className="text-gray-400 dark:text-gray-500 text-sm">
-              Create your first outfit and share it with the community!
-            </p>
-          </div>
-        )}
-
-        {/* Posts Grid */}
-        {!isLoading && !error && posts.length > 0 && (
-          <div className="flex flex-wrap gap-6 pb-8 px-4">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-shadow overflow-hidden w-[350px]"
-              >
-                {/* User Header */}
-                <div className="flex items-center gap-2 p-3">
-                  <Avatar className="w-8 h-8 ring-2 ring-gray-200 dark:ring-gray-700">
-                    {user?.profile_image_url && (
-                      <AvatarImage src={user.profile_image_url} alt={userName} />
-                    )}
-                    <AvatarFallback className="bg-gradient-to-br from-purple-400 to-pink-400 text-white font-semibold text-sm">
-                      {user ? getInitials(user.first_name, user.last_name) : "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-                      {userName}
-                    </h3>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeletePostId(post.id)}
-                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </Button>
+                            {/* Pro Badge or Upgrade */}
+                            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                                <Crown className="h-4 w-4 text-amber-500" />
+                                Upgrade to Pro
+                            </Button>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Image */}
-                <div
-                  className="bg-white dark:bg-gray-900 cursor-pointer aspect-[4/3] relative group overflow-hidden"
-                  onClick={() => setSelectedPost(post)}
-                >
-                  <img
-                    src={post.image_url}
-                    alt="Outfit post"
-                    className="w-full h-full object-contain"
-                  />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
-                </div>
-
-                {/* Actions & Details */}
-                <div className="p-3">
-                  {/* Action Buttons */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-4">
-                      <button
-                        className="text-gray-700 dark:text-gray-300 hover:text-red-500 hover:scale-110 transition-all"
-                      >
-                        <FiHeart className="w-6 h-6" />
-                      </button>
-                      <button
-                        onClick={() => setSelectedPost(post)}
-                        className="text-gray-700 dark:text-gray-300 hover:text-blue-500 hover:scale-110 transition-all"
-                      >
-                        <FiMessageCircle className="w-6 h-6" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Likes Count */}
-                  <div className="mb-2">
-                    <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">
-                      {post.likes_count.toLocaleString()} likes
-                    </p>
-                  </div>
-
-                  {/* Caption */}
-                  {post.text && (
-                    <div className="mb-2">
-                      <p className="text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
-                        <span className="font-semibold mr-1">{userName}</span>
-                        {post.text.split(' ').map((word, i) => {
-                          if (word.startsWith('#')) {
-                            return (
-                              <span key={i} className="text-blue-600 dark:text-blue-400 font-medium">
-                                {word}{' '}
-                              </span>
-                            );
-                          }
-                          return <span key={i}>{word} </span>;
-                        })}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* View Comments */}
-                  {post.comments_count > 0 && (
+                {/* Tabs */}
+                <div className="flex gap-2 border-b border-border">
                     <button
-                      onClick={() => setSelectedPost(post)}
-                      className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                        onClick={() => setActiveTab("posts")}
+                        className={cn(
+                            "px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px",
+                            activeTab === "posts"
+                                ? "border-primary text-foreground"
+                                : "border-transparent text-muted-foreground hover:text-foreground"
+                        )}
                     >
-                      View all {post.comments_count} comments
+                        My Posts
                     </button>
-                  )}
-
-                  {/* Timestamp */}
-                  <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-                    {formatTimeAgo(post.created_at)}
-                  </p>
+                    <button
+                        onClick={() => setActiveTab("saved")}
+                        className={cn(
+                            "px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px",
+                            activeTab === "saved"
+                                ? "border-primary text-foreground"
+                                : "border-transparent text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        Saved
+                    </button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletePostId} onOpenChange={() => setDeletePostId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Post</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this post? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isDeleting ? (
-                <>
-                  <ShirtLoader size="sm" />
-                  <span className="ml-2">Deleting...</span>
-                </>
-              ) : (
-                "Delete"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                {/* Posts Grid */}
+                {activeTab === "posts" && (
+                    <>
+                        <PostDetail
+                            post={selectedPost}
+                            isOpen={isDetailOpen}
+                            onClose={() => setIsDetailOpen(false)}
+                            isLiked={false} // Profile page doesn't track likes in state yet, could be added
+                        />
+                        {userPosts.length > 0 ? (
+                            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                                {userPosts.map((post) => (
+                                    <PostCard
+                                        key={post.id}
+                                        post={post}
+                                        onDelete={handleDeletePost}
+                                        isLiked={false}
+                                        onCommentClick={(p) => {
+                                            setSelectedPost(p)
+                                            setIsDetailOpen(true)
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-16 text-center">
+                                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                                    <MessageCircle className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-foreground">No posts yet</h3>
+                                <p className="text-muted-foreground mt-1">Share your first outfit with the community</p>
+                            </div>
+                        )}
+                    </>
+                )}
 
-      {/* Comments Modal */}
-      {selectedPost && (
-        <CommentsModal
-          open={!!selectedPost}
-          onClose={() => setSelectedPost(null)}
-          post={selectedPost}
-          onLike={() => {}}
-          currentUserId={user?.id}
-        />
-      )}
-    </div>
-  );
+                {/* Empty State for Saved Tab */}
+                {activeTab === "saved" && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <Heart className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">View your saved outfits</h3>
+                        <p className="text-muted-foreground mt-1">Visit the Saved page to see all your saved outfits</p>
+                        <Button className="mt-4" onClick={() => router.push("/dashboard/saved")}>
+                            Go to Saved
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
 }

@@ -52,9 +52,8 @@ export function Header() {
   ]
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
-      isScrolled ? "bg-white shadow-md" : "bg-transparent"
-    }`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${isScrolled ? "bg-white shadow-md" : "bg-transparent"
+      }`}>
       <div className="w-full px-8 lg:px-12 py-3">
         <nav className="flex items-center justify-between">
           <div className="flex items-center gap-4 sm:gap-8 lg:gap-12">
@@ -79,19 +78,19 @@ export function Header() {
           </div>
           {/* Auth Buttons & Features - Desktop */}
           <div className="hidden md:flex items-center gap-4">
-            <a 
-              href="/login" 
+            <a
+              href="/login"
               className="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#0095da] focus:ring-offset-2 rounded px-2 py-1"
             >
               Sign in
             </a>
             <a href="/signup">
-              <Button className="rounded-none">
+              <Button className="rounded-none bg-[#1C1C1C] hover:bg-black text-white px-8">
                 Start free
               </Button>
             </a>
             <div className="relative" ref={featuresDropdownRef}>
-              <button 
+              <button
                 onClick={() => setShowFeaturesDropdown(!showFeaturesDropdown)}
                 onMouseEnter={() => setShowFeaturesDropdown(true)}
                 className="p-2 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#0095da] focus:ring-offset-2"
@@ -103,7 +102,7 @@ export function Header() {
               </button>
               {/* Features Dropdown */}
               {showFeaturesDropdown && (
-                <div 
+                <div
                   className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 animate-in fade-in slide-in-from-top-2 duration-200"
                   onMouseLeave={() => setShowFeaturesDropdown(false)}
                 >
@@ -163,21 +162,21 @@ export function Header() {
                   ))}
                 </div>
               )}
-              
+
               <div className="pt-2 border-t border-gray-200 mt-2 space-y-2">
-                <a 
-                  href="/login" 
+                <a
+                  href="/login"
                   className="block px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors duration-200 text-center"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Sign in
                 </a>
-                <a 
+                <a
                   href="/signup"
                   className="block"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <Button className="w-full rounded-none">
+                  <Button className="w-full rounded-none bg-[#1C1C1C] hover:bg-black text-white">
                     Start free
                   </Button>
                 </a>

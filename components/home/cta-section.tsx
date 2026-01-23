@@ -19,8 +19,8 @@ export function CTASection() {
 					</p>
 				</div>
 				<div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-4">
-					<Button 
-						className="group bg-black text-white hover:bg-gray-800 px-12 py-8 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+					<Button
+						className="group bg-[#1C1C1C] text-white hover:bg-black px-12 py-8 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
 					>
 						Get started free
 						<ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />

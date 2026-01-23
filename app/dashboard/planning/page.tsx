@@ -1,386 +1,349 @@
-"use client";
-import React, { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiCalendar } from "react-icons/fi";
-import { IoPartlySunny } from "react-icons/io5";
-import { Send, Trash2, Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { stylingService, type StylingRecommendationResponse } from "@/lib/api/styling";
-import { calendarOutfitsService, type CalendarOutfit } from "@/lib/api/calendarOutfits";
-import { cn } from "@/lib/utils";
-import PostOutfitModal from "@/components/dashboard/PostOutfitModal";
-import ShirtLoader from "@/components/ui/ShirtLoader";
+"use client"
 
-interface DayData {
-  day: string;
-  date: string;
-  fullDate: string; // Format: YYYY-MM-DD for API
-  temp: string;
-  tempValue: number;
-  icon: string;
-  today?: boolean;
-}
+import { useState, useEffect } from "react"
+import Image from "next/image"
+import { Send, Trash2, RefreshCw, Share2, Save, CloudRain, X, Calendar } from "lucide-react"
+import ShirtLoader from "@/components/ui/ShirtLoader"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+import { stylingService } from "@/lib/api/styling"
+import { calendarOutfitsService } from "@/lib/api/calendarOutfits"
+import type { StylingRecommendationResponse } from "@/lib/api/styling"
+import type { CalendarOutfit } from "@/lib/api/calendarOutfits"
 
-// Generate 5 days data: 2 before today, today, and 2 after today
-function generateWeekData(): DayData[] {
-  const today = new Date();
-  const days: DayData[] = [];
-
-  // Start from 2 days ago to 2 days after (5 days total)
-  for (let i = -2; i <= 2; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    const isToday = i === 0;
-    const dayName = isToday ? "Today" : dayNames[date.getDay()];
-    const dateStr = `${monthNames[date.getMonth()]} ${date.getDate()}`;
-    const fullDate = date.toISOString().split('T')[0];
-
-    // Mock weather data for 5 days
-    const temps = [20, 21, 22, 23, 24];
-    const lows = [10, 9, 10, 11, 12];
-    const icons = ["sunny", "sunny", "sunny", "cloudy", "sunny"];
-
-    days.push({
-      day: dayName,
-      date: dateStr,
-      fullDate,
-      temp: `${temps[i + 2]}° / ${lows[i + 2]}°`,
-      tempValue: temps[i + 2],
-      icon: icons[i + 2],
-      today: isToday,
-    });
-  }
-
-  return days;
-}
-
-const week = generateWeekData();
-
-function getWeatherIcon(icon: string, size: number = 20) {
-  if (icon === "sunny") return <IoPartlySunny style={{ fontSize: size }} className="text-yellow-400" />;
-  if (icon === "cloudy") return <span style={{ fontSize: size }}>⛅️</span>;
-  if (icon === "rainy") return <span style={{ fontSize: size }}>🌧️</span>;
-  return null;
-}
+const days = [
+    { day: "Wed", date: "Jan 21", dateStr: "2026-01-21" },
+    { day: "Thu", date: "Jan 22", dateStr: "2026-01-22" },
+    { day: "Today", date: "Jan 23", dateStr: "2026-01-23" },
+    { day: "Sat", date: "Jan 24", dateStr: "2026-01-24" },
+    { day: "Sun", date: "Jan 25", dateStr: "2026-01-25" },
+]
 
 export default function PlanningPage() {
-  const [selectedDayIndex, setSelectedDayIndex] = useState(2);
-  const [prompt, setPrompt] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [result, setResult] = useState<StylingRecommendationResponse | null>(null);
-  const [error, setError] = useState("");
-  const [showPostModal, setShowPostModal] = useState(false);
-  const [postImageUrl, setPostImageUrl] = useState("");
-  const queryClient = useQueryClient();
+    const [selectedDay, setSelectedDay] = useState(2)
+    const [planInput, setPlanInput] = useState("")
+    const [loading, setLoading] = useState(false)
+    const [recommendation, setRecommendation] = useState<StylingRecommendationResponse | null>(null)
+    const [savedOutfit, setSavedOutfit] = useState<CalendarOutfit | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
-  const { data: savedOutfitsData, isLoading: loadingSavedOutfits } = useQuery({
-    queryKey: ["calendarOutfits"],
-    queryFn: async () => {
-      const outfits = await calendarOutfitsService.getAll();
-      const outfitsMap: Record<string, CalendarOutfit> = {};
-      outfits.forEach((outfit) => {
-        outfitsMap[outfit.outfit_date] = outfit;
-      });
-      return outfitsMap;
-    },
-  });
+    // Load saved outfit for selected day
+    useEffect(() => {
+        loadOutfitForDay(days[selectedDay].dateStr)
+    }, [selectedDay])
 
-  const savedOutfits = savedOutfitsData ?? {};
-
-  const selectedDay = week[selectedDayIndex];
-  const hasSavedOutfit = selectedDay ? !!savedOutfits[selectedDay.fullDate] : false;
-
-  useEffect(() => {
-    if (selectedDay) {
-      const savedOutfit = savedOutfits[selectedDay.fullDate];
-      if (savedOutfit) {
-        setPrompt(savedOutfit.prompt);
-        setResult({
-          success: true,
-          prompt: savedOutfit.prompt,
-          selected_categories: savedOutfit.selected_categories,
-          combined_image_url: savedOutfit.combined_image_url,
-          items: savedOutfit.items,
-        });
-      } else {
-        setPrompt("");
-        setResult(null);
-      }
-      setError("");
+    const loadOutfitForDay = async (date: string) => {
+        try {
+            console.log('🔍 Loading outfit for date:', date)
+            const outfit = await calendarOutfitsService.getByDate(date)
+            console.log('✅ Loaded outfit:', outfit)
+            setSavedOutfit(outfit)
+            if (outfit) {
+                setPlanInput(outfit.prompt || "")
+                setRecommendation({
+                    success: true,
+                    prompt: outfit.prompt,
+                    selected_categories: outfit.selected_categories,
+                    combined_image_url: outfit.combined_image_url,
+                    items: outfit.items,
+                })
+            } else {
+                console.log('ℹ️ No outfit found for this date')
+                setRecommendation(null)
+                setPlanInput("")
+            }
+        } catch (err) {
+            console.error("❌ Error loading outfit:", err)
+            setRecommendation(null)
+            setPlanInput("")
+            setSavedOutfit(null)
+        }
     }
-  }, [selectedDay, savedOutfits]);
 
-  const handleGenerateOutfit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim() || isLoading) return;
+    const handleGetRecommendation = async () => {
+        if (!planInput?.trim()) return
 
-    setIsLoading(true);
-    setError("");
-    setResult(null);
-
-    try {
-      const response = await stylingService.getRecommendation(prompt.trim());
-      setResult(response);
-    } catch (err) {
-      setError("Failed to generate outfit. Please try again.");
-      console.error("Styling error:", err);
-    } finally {
-      setIsLoading(false);
+        try {
+            setLoading(true)
+            setError(null)
+            const result = await stylingService.getRecommendation(planInput.trim())
+            setRecommendation(result)
+        } catch (err: any) {
+            console.error("Error getting recommendation:", err)
+            setError(err.message || "Failed to get recommendation")
+        } finally {
+            setLoading(false)
+        }
     }
-  };
 
-  const handleSaveOutfit = async () => {
-    if (!selectedDay || !result || isSaving) return;
+    const handleSaveOutfit = async () => {
+        if (!recommendation) return
 
-    setIsSaving(true);
-    setError("");
+        try {
+            await calendarOutfitsService.save({
+                outfit_date: days[selectedDay].dateStr,
+                combined_image_url: recommendation.combined_image_url,
+                prompt: recommendation.prompt,
+                temperature: 22,
+                selected_categories: recommendation.selected_categories,
+                items: recommendation.items,
+            })
 
-    try {
-      await calendarOutfitsService.save({
-        outfit_date: selectedDay.fullDate,
-        combined_image_url: result.combined_image_url,
-        prompt: prompt,
-        temperature: selectedDay.tempValue,
-        selected_categories: result.selected_categories,
-        items: result.items,
-      });
-      queryClient.invalidateQueries({ queryKey: ["calendarOutfits"] });
-    } catch (err) {
-      setError("Failed to save outfit. Please try again.");
-      console.error("Save error:", err);
-    } finally {
-      setIsSaving(false);
+            await loadOutfitForDay(days[selectedDay].dateStr)
+            alert("Outfit saved successfully!")
+        } catch (err) {
+            console.error("Error saving outfit:", err)
+            alert("Failed to save outfit")
+        }
     }
-  };
 
-  const handleDeleteOutfit = async () => {
-    if (!selectedDay || isDeleting) return;
+    const handleDeleteOutfit = async () => {
+        if (!savedOutfit) return
 
-    setIsDeleting(true);
-    setError("");
-
-    try {
-      await calendarOutfitsService.delete(selectedDay.fullDate);
-      queryClient.setQueryData<Record<string, CalendarOutfit>>(["calendarOutfits"], (oldData) => {
-        if (!oldData) return {};
-        const updated = { ...oldData };
-        delete updated[selectedDay.fullDate];
-        return updated;
-      });
-      setResult(null);
-      setPrompt("");
-    } catch (err) {
-      setError("Failed to delete outfit. Please try again.");
-      console.error("Delete error:", err);
-    } finally {
-      setIsDeleting(false);
+        try {
+            await calendarOutfitsService.delete(days[selectedDay].dateStr)
+            setSavedOutfit(null)
+            setRecommendation(null)
+            setPlanInput("")
+        } catch (err) {
+            console.error("Error deleting outfit:", err)
+            alert("Failed to delete outfit")
+        }
     }
-  };
 
-  const handlePostClick = (imageUrl: string) => {
-    setPostImageUrl(imageUrl);
-    setShowPostModal(true);
-  };
+    const handleTryAnother = () => {
+        setRecommendation(null)
+        setPlanInput("")
+    }
 
-  return (
-    <div className="flex flex-col min-h-[calc(100vh-8rem)] bg-gray-50 dark:bg-gray-900">
-      <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-        Outfit Planner
-      </h1>
-      <p className="mt-2 text-gray-500 dark:text-gray-400">
-        Plan your outfits for the week with AI-powered suggestions based on weather.
-      </p>
+    // Split items into "THE FIT" (first 5) and "THE INSPO" (rest or combined image)
+    const fitItems = recommendation?.items?.slice(0, 5) || []
+    const inspoItems = recommendation?.items?.slice(5) || []
 
-      {/* Day Selector */}
-      <div className="mt-6 flex justify-center gap-2">
-        {week.map((day, index) => (
-          <button
-            key={day.fullDate}
-            onClick={() => setSelectedDayIndex(index)}
-            className={cn(
-              "rounded-lg px-4 py-2 text-center transition-all duration-200",
-              selectedDayIndex === index
-                ? "bg-gray-900 text-white shadow-md dark:bg-gray-100 dark:text-gray-900"
-                : "bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-            )}
-          >
-            <div className="font-semibold">{day.day}</div>
-            <div className="text-xs">{day.date}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* Main Content */}
-      <div className="mt-6 flex-1 rounded-2xl bg-white dark:bg-gray-800 shadow-lg p-8 overflow-y-auto mb-6 mx-6">
-        <div className="grid grid-cols-12 gap-8 h-full">
-          {/* Left Vertical Text */}
-          <div className="col-span-1 flex flex-col items-center justify-between">
-            <div className="flex-1 flex items-center">
-              <h2 className="text-5xl font-bold text-gray-300 dark:text-gray-600" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
-                {prompt.toUpperCase() || "EVENT"}
-              </h2>
-            </div>
-            {selectedDay && (
-              <div className="text-center">
-                <div className="text-3xl mb-1">
-                  {selectedDay.icon === "sunny" ? <IoPartlySunny className="text-yellow-400" /> : selectedDay.icon === "cloudy" ? "⛅️" : "🌧️"}
-                </div>
-                <p className="text-lg font-bold text-gray-700 dark:text-gray-300">{selectedDay.tempValue}°</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{selectedDay.date}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Center Content */}
-          <div className="col-span-11">
-            {/* Prompt Input */}
-            <form onSubmit={handleGenerateOutfit} className="mb-6">
-              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                What's your plan for this day?
-              </label>
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                  <Input
-                    type="text"
-                    placeholder="e.g., office meeting, casual brunch, date night..."
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    disabled={isLoading}
-                    className="h-12 px-4 text-base rounded-xl border-gray-300 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 shadow-sm focus:border-gray-900 focus:ring-gray-900"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={!prompt.trim() || isLoading}
-                  className="h-12 px-5 rounded-xl"
-                >
-                  {isLoading ? (
-                    <ShirtLoader size="sm" />
-                  ) : (
-                    <Send className="h-5 w-5" />
-                  )}
-                </Button>
-              </div>
-            </form>
-
-            {error && (
-              <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
-                {error}
-              </div>
-            )}
-
-            {loadingSavedOutfits ? (
-               <div className="flex min-h-[20vh] items-center justify-center pt-20">
-                 <ShirtLoader size="lg" />
-               </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-6 max-h-[calc(100vh-22rem)]">
-                {/* The Fit */}
-                <div className="flex flex-col h-full min-h-0">
-                  <h3 className="text-center text-2xl font-semibold tracking-widest text-gray-800 dark:text-gray-200 mb-3">THE FIT</h3>
-                  {isLoading ? (
-                     <div className="flex flex-1 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50 min-h-[200px]">
-                       <p className="text-gray-500">Generating...</p>
-                     </div>
-                  ) : result?.items ? (
-                    <div className="grid grid-cols-3 grid-rows-2 gap-3 rounded-lg bg-gray-100 dark:bg-gray-700/50 p-3 flex-1 min-h-0">
-                      {/* Reorder items to fill column by column: 0->0, 1->3, 2->1, 3->4, 4->2, 5->5 */}
-                      {[0, 2, 4, 1, 3, 5].map((orderIndex) => {
-                        const item = result.items[orderIndex];
-                        if (!item) return <div key={orderIndex} className="hidden" />;
-                        return (
-                          <div key={item.id} className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow aspect-square">
-                            <img src={item.image_url} alt={item.category} className="w-full h-full object-cover" />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 min-h-[200px]">
-                      <FiCalendar size={48} className="text-gray-300 dark:text-gray-500" />
-                    </div>
-                  )}
-                </div>
-
-                {/* The Inspo */}
-                <div className="flex flex-col h-full min-h-0">
-                  <h3 className="text-center text-2xl font-semibold tracking-widest text-gray-800 dark:text-gray-200 mb-3">THE INSPO</h3>
-                   {isLoading ? (
-                     <div className="flex flex-1 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50 min-h-[200px]">
-                        <p className="text-gray-500">Generating...</p>
-                     </div>
-                  ) : result?.combined_image_url ? (
-                    <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow flex-1 min-h-0 max-h-[320px]">
-                      <img src={result.combined_image_url} alt="Outfit inspiration" className="w-full h-full object-contain" />
-                    </div>
-                  ) : (
-                     <div className="flex flex-1 items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 min-h-[200px]">
-                       <FiCalendar size={48} className="text-gray-300 dark:text-gray-500" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            {result && !isLoading && (
-              <div className="mt-6 flex items-center justify-between">
+    return (
+        <div className="min-h-screen p-4 md:p-6 lg:p-8">
+            <div className="max-w-6xl mx-auto space-y-6">
+                {/* Header */}
                 <div>
-                  {hasSavedOutfit && (
-                     <Button
-                      onClick={handleDeleteOutfit}
-                      disabled={isDeleting}
-                      variant="ghost"
-                      className="text-red-600 hover:bg-red-50 dark:text-red-500 dark:hover:bg-red-900/20"
-                    >
-                      {isDeleting ? <ShirtLoader size="sm" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                      Delete
-                    </Button>
-                  )}
+                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Outfit Planner</h1>
+                    <p className="text-muted-foreground mt-1">
+                        Plan your outfits for the week with AI-powered suggestions based on weather.
+                    </p>
                 </div>
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => {
-                      setResult(null);
-                      setPrompt("");
-                    }}
-                    variant="outline"
-                  >
-                    Try Another
-                  </Button>
-                  <Button
-                    onClick={() => handlePostClick(result.combined_image_url)}
-                    variant="outline"
-                  >
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Post
-                  </Button>
-                  <Button onClick={handleSaveOutfit} disabled={isSaving}>
-                    {isSaving ? (
-                      <ShirtLoader size="sm" />
-                    ) : null}
-                    {hasSavedOutfit ? 'Update Outfit' : 'Save to Calendar'}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Post Modal */}
-      <PostOutfitModal
-        open={showPostModal}
-        onClose={() => setShowPostModal(false)}
-        imageUrl={postImageUrl}
-      />
-    </div>
-  );
+                {/* Day Selector */}
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {days.map((d, index) => (
+                        <button
+                            key={index}
+                            onClick={() => setSelectedDay(index)}
+                            className={cn(
+                                "flex flex-col items-center justify-center min-w-[72px] px-4 py-3 rounded-xl transition-all duration-200",
+                                selectedDay === index
+                                    ? "bg-foreground text-background shadow-lg"
+                                    : "bg-card border border-border hover:bg-muted"
+                            )}
+                        >
+                            <span className="text-sm font-semibold">{d.day}</span>
+                            <span className="text-xs opacity-70">{d.date}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Plan Input */}
+                <div className="bg-card rounded-2xl border border-border p-4 md:p-6">
+                    <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                        {"What's your plan for this day?"}
+                    </label>
+                    <div className="flex gap-2">
+                        <Input
+                            placeholder="e.g., casual day out, formal meeting, rainy day..."
+                            value={planInput || ""}
+                            onChange={(e) => setPlanInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    handleGetRecommendation()
+                                }
+                            }}
+                            className="flex-1 bg-background"
+                            disabled={loading}
+                        />
+                        <Button
+                            size="icon"
+                            className="shrink-0"
+                            onClick={handleGetRecommendation}
+                            disabled={loading || !planInput?.trim()}
+                        >
+                            <Send className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <ShirtLoader size="xl" />
+                        <p className="text-muted-foreground mt-4">Creating your outfit...</p>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && !loading && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                            <X className="h-8 w-8 text-destructive" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">Failed to get recommendation</h3>
+                        <p className="text-muted-foreground mt-1">{error}</p>
+                        <Button onClick={handleGetRecommendation} className="mt-4">Try Again</Button>
+                    </div>
+                )}
+
+                {/* Main Content Grid - Only show when we have a recommendation */}
+                {recommendation && !loading && (
+                    <>
+                        <div className="grid lg:grid-cols-12 gap-6">
+                            {/* Left Column - Weather & Label */}
+                            <div className="lg:col-span-1 flex lg:flex-col items-center gap-4">
+                                {/* Weather Widget */}
+                                <div className="bg-card rounded-2xl border border-border p-4 flex flex-col items-center">
+                                    <CloudRain className="h-8 w-8 text-muted-foreground mb-2" />
+                                    <span className="text-2xl font-bold text-foreground">22°</span>
+                                    <span className="text-xs text-muted-foreground">{days[selectedDay].date}</span>
+                                </div>
+
+                                {/* Vertical Label */}
+                                <div className="hidden lg:flex items-center justify-center">
+                                    <span className="text-7xl font-black tracking-tighter text-primary/30 [writing-mode:vertical-lr] rotate-180 uppercase select-none pointer-events-none">
+                                        {recommendation.prompt}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* The Fit Section */}
+                            <div className="lg:col-span-5">
+                                <div className="bg-card rounded-2xl border border-border overflow-hidden h-full min-h-[500px]">
+                                    <div className="p-4 border-b border-border">
+                                        <h2 className="text-lg font-bold text-foreground text-center">THE FIT</h2>
+                                    </div>
+                                    <div className="p-6 h-[calc(100%-60px)]">
+                                        <div className="grid grid-cols-2 gap-4 h-full auto-rows-fr">
+                                            {fitItems.map((item) => (
+                                                <div
+                                                    key={item.id}
+                                                    className="relative rounded-xl overflow-hidden bg-muted/50"
+                                                >
+                                                    <Image
+                                                        src={item.image_url}
+                                                        alt={item.category}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* The Inspo Section */}
+                            <div className="lg:col-span-6">
+                                <div className="bg-card rounded-2xl border border-border overflow-hidden h-full min-h-[500px]">
+                                    <div className="p-4 border-b border-border">
+                                        <h2 className="text-lg font-bold text-foreground text-center">THE INSPO</h2>
+                                    </div>
+                                    <div className="p-6 h-[calc(100%-60px)]">
+                                        {recommendation.combined_image_url ? (
+                                            <div className="relative h-full w-full rounded-xl overflow-hidden bg-muted">
+                                                <Image
+                                                    src={recommendation.combined_image_url}
+                                                    alt="Complete outfit inspiration"
+                                                    fill
+                                                    className="object-contain"
+                                                />
+                                            </div>
+                                        ) : inspoItems.length > 0 ? (
+                                            <div className="grid grid-cols-2 gap-4 h-full">
+                                                {inspoItems.map((item) => (
+                                                    <div
+                                                        key={item.id}
+                                                        className="relative rounded-xl overflow-hidden bg-muted/50"
+                                                    >
+                                                        <Image
+                                                            src={item.image_url}
+                                                            alt={item.category}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full rounded-xl bg-muted">
+                                                <p className="text-muted-foreground">No inspiration images available</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center justify-between gap-4 bg-card rounded-2xl border border-border p-4">
+                            <Button
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2"
+                                onClick={handleDeleteOutfit}
+                                disabled={!savedOutfit}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                Delete
+                            </Button>
+
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    variant="outline"
+                                    className="gap-2 bg-transparent"
+                                    onClick={handleTryAnother}
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                    Try Another
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="gap-2 bg-transparent"
+                                    onClick={() => {
+                                        // TODO: Implement post to community
+                                        alert("Post to community feature coming soon!")
+                                    }}
+                                >
+                                    <Share2 className="h-4 w-4" />
+                                    Post
+                                </Button>
+                                <Button
+                                    className="gap-2 shadow-lg shadow-primary/20"
+                                    onClick={handleSaveOutfit}
+                                >
+                                    <Save className="h-4 w-4" />
+                                    {savedOutfit ? "Update Outfit" : "Save Outfit"}
+                                </Button>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* Empty State */}
+                {!recommendation && !loading && !error && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <Calendar className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">No outfit planned</h3>
+                        <p className="text-muted-foreground mt-1">Enter your plan above to get AI outfit suggestions</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    )
 }

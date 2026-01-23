@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react';
 import { IoShirtOutline } from 'react-icons/io5';
 
@@ -22,7 +24,7 @@ const ShirtLoader: React.FC<ShirtLoaderProps> = ({ size = 'md', className = '' }
           animation: 'flipHorizontal 1.2s ease-in-out infinite',
         }}
       >
-        <IoShirtOutline className="text-gray-600 dark:text-gray-400" />
+        <IoShirtOutline className="text-primary" />
       </div>
       <style jsx>{`
         @keyframes flipHorizontal {

@@ -1,180 +1,364 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import NewOutfitModal from "@/components/dashboard/NewOutfitModal";
-import EditImageModal from "@/components/dashboard/EditImageModal";
-import { wardrobeService } from "@/lib/api/wardrobe";
-import type { WardrobeItem } from "@/lib/api/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { SquarePen, Plus } from "lucide-react";
-import ShirtLoader from "@/components/ui/ShirtLoader";
+import { useState, useEffect } from "react"
+import Image from "next/image"
+import { Search, Plus, Filter, Grid3X3, List, MoreHorizontal, Trash2, Edit, Bookmark, X } from "lucide-react"
+import ShirtLoader from "@/components/ui/ShirtLoader"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
+import { wardrobeService } from "@/lib/api/wardrobe"
+import type { WardrobeItem } from "@/lib/api/types"
+import { CATEGORY_GROUPS, ATTRIBUTE_LABELS } from "@/lib/api/types"
+import { useRouter } from "next/navigation"
+import NewOutfitModal from "@/components/dashboard/NewOutfitModal"
+
+const categories = ["All", "Upper Wear", "Bottom Wear", "Outer Wear", "Footwear", "Other Items"]
+
+const categoryGroupMap: Record<string, string> = {
+    "Upper Wear": "upperWear",
+    "Bottom Wear": "bottomWear",
+    "Outer Wear": "outerWear",
+    "Footwear": "footwear",
+    "Other Items": "otherItems",
+}
 
 export default function WardrobePage() {
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const queryClient = useQueryClient();
+    const router = useRouter()
+    const [searchQuery, setSearchQuery] = useState("")
+    const [selectedCategory, setSelectedCategory] = useState("All")
+    const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+    const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null)
+    const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false)
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["wardrobe"],
-    queryFn: async () => {
-      const response = await wardrobeService.getItems();
-      if (response.success) {
-        return response.items;
-      }
-      throw new Error("Failed to load wardrobe items");
-    },
-  });
+    // Fetch wardrobe items on mount
+    useEffect(() => {
+        fetchWardrobeItems()
+    }, [])
 
-  const items = data ?? [];
+    const fetchWardrobeItems = async () => {
+        try {
+            setLoading(true)
+            setError(null)
+            const response = await wardrobeService.getItems()
+            setWardrobeItems(response.items)
+        } catch (err: any) {
+            console.error("Error fetching wardrobe items:", err)
+            setError(err.message || "Failed to load wardrobe items")
+        } finally {
+            setLoading(false)
+        }
+    }
 
-  const handleEditClick = (item: WardrobeItem) => {
-    setSelectedItem(item);
-    setShowEditModal(true);
-  };
+    const handleDeleteItem = async (itemId: string) => {
+        try {
+            await wardrobeService.deleteItem(itemId)
+            // Remove from local state
+            setWardrobeItems(prev => prev.filter(item => item.id !== itemId))
+            setSelectedItem(null)
+        } catch (err: any) {
+            console.error("Error deleting item:", err)
+            alert("Failed to delete item")
+        }
+    }
 
-  const handleUploadClose = () => {
-    setShowUploadModal(false);
-    queryClient.invalidateQueries({ queryKey: ["wardrobe"] });
-  };
+    const filteredItems = wardrobeItems.filter((item) => {
+        const matchesSearch = item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.attributes.color?.toLowerCase().includes(searchQuery.toLowerCase())
 
-  const handleDeleteItem = (itemId: string) => {
-    queryClient.setQueryData<WardrobeItem[]>(["wardrobe"], (oldData) =>
-      oldData ? oldData.filter((item) => item.id !== itemId) : []
-    );
-  };
+        if (selectedCategory === "All") {
+            return matchesSearch
+        }
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "";
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+        const categoryGroup = categoryGroupMap[selectedCategory]
+        return matchesSearch && item.categoryGroup === categoryGroup
+    })
 
-  const filteredItems = items.filter((item) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
+    // Get display name for category
+    const getCategoryDisplayName = (categoryGroup: string) => {
+        const mapping: Record<string, string> = {
+            upperWear: "Upper Wear",
+            bottomWear: "Bottom Wear",
+            outerWear: "Outer Wear",
+            footwear: "Footwear",
+            otherItems: "Other Items",
+        }
+        return mapping[categoryGroup] || categoryGroup
+    }
+
     return (
-      item.category.toLowerCase().includes(query) ||
-      item.categoryGroup.toLowerCase().includes(query) ||
-      Object.values(item.attributes).some(
-        (val) => val && val.toLowerCase().includes(query)
-      )
-    );
-  });
-
-  return (
-    <main className="flex h-full flex-col overflow-hidden">
-      <NewOutfitModal open={showUploadModal} onClose={handleUploadClose} />
-      <EditImageModal
-        open={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        item={selectedItem}
-        onDelete={handleDeleteItem}
-      />
-
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-            Wardrobe
-          </h1>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">
-            {isLoading ? "Loading items..." : `You have ${filteredItems.length} items in your wardrobe.`}
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Input
-            type="text"
-            placeholder="Search items..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-64 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-900 dark:focus:ring-blue-500"
-          />
-          <Button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Item</span>
-          </Button>
-        </div>
-      </div>
-
-      {error && (
-        <Alert variant="destructive" className="my-5">
-          <AlertDescription className="flex items-center justify-between">
-            {error instanceof Error ? error.message : "Failed to load wardrobe items"}
-            <Button onClick={() => refetch()} variant="secondary">
-              Retry
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="mt-8 flex-1 overflow-y-auto">
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[20vh] pt-20">
-            <ShirtLoader size="lg" />
-          </div>
-        ) : !error && items.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center text-center">
-            <div className="flex flex-col items-center gap-4">
-              <div className="text-6xl">👕</div>
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                Your wardrobe is empty
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                Upload your first outfit to get started
-              </p>
-              <Button
-                onClick={() => setShowUploadModal(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" /> Add Items
-              </Button>
-            </div>
-          </div>
-        ) : !error && filteredItems.length > 0 ? (
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className="group relative w-full cursor-pointer"
-                onClick={() => handleEditClick(item)}
-              >
-                <div className="aspect-square w-full overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 relative">
-                  <img
-                    src={item.image_url}
-                    alt={item.category}
-                    className="h-full w-full object-contain object-center transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center text-white">
-                    <SquarePen className="w-5 h-5 mr-2" />
-                    <span className="text-sm font-medium">Edit</span>
-                  </div>
-                  {item.created_at && (
-                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      {formatDate(item.created_at)}
+        <div className="min-h-screen p-4 md:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Wardrobe</h1>
+                        <p className="text-muted-foreground mt-1">
+                            You have <span className="font-semibold text-foreground">{wardrobeItems.length} items</span> in your wardrobe.
+                        </p>
                     </div>
-                  )}
+                    <Button className="gap-2 shadow-lg shadow-primary/20" onClick={() => setIsNewItemModalOpen(true)}>
+                        <Plus className="h-4 w-4" />
+                        New Item
+                    </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-           <div className="flex flex-1 items-center justify-center text-center text-gray-500 dark:text-gray-400">
-            <div>
-              <h3 className="text-xl font-semibold">No items found</h3>
-              <p>Your search for &quot;{searchQuery}&quot; did not return any results.</p>
+
+                {/* Search & Filter Bar */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search items..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 bg-card border-border"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center rounded-lg border border-border bg-card p-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                    "h-8 w-8 p-0",
+                                    viewMode === "grid" && "bg-muted"
+                                )}
+                                onClick={() => setViewMode("grid")}
+                            >
+                                <Grid3X3 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                    "h-8 w-8 p-0",
+                                    viewMode === "list" && "bg-muted"
+                                )}
+                                onClick={() => setViewMode("list")}
+                            >
+                                <List className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Category Filter */}
+                <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                        <Button
+                            key={category}
+                            variant={selectedCategory === category ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedCategory(category)}
+                            className={cn(
+                                "rounded-full",
+                                selectedCategory === category && "shadow-lg shadow-primary/20"
+                            )}
+                        >
+                            {category}
+                        </Button>
+                    ))}
+                </div>
+
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <ShirtLoader size="xl" />
+                        <p className="text-muted-foreground mt-4">Loading your wardrobe...</p>
+                    </div>
+                )}
+
+                {/* Error State */}
+                {error && !loading && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                            <X className="h-8 w-8 text-destructive" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">Failed to load wardrobe</h3>
+                        <p className="text-muted-foreground mt-1">{error}</p>
+                        <Button onClick={fetchWardrobeItems} className="mt-4">Try Again</Button>
+                    </div>
+                )}
+
+                {/* Items Grid */}
+                {!loading && !error && (
+                    <div className={cn(
+                        "grid gap-4",
+                        viewMode === "grid"
+                            ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                            : "grid-cols-1"
+                    )}>
+                        {filteredItems.map((item) => (
+                            <div
+                                key={item.id}
+                                onClick={() => setSelectedItem(item)}
+                                className={cn(
+                                    "group relative bg-card rounded-2xl border border-border overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 cursor-pointer",
+                                    viewMode === "list" && "flex items-center"
+                                )}
+                            >
+                                <div className={cn(
+                                    "relative aspect-square bg-muted/50",
+                                    viewMode === "list" && "w-24 h-24 aspect-auto flex-shrink-0"
+                                )}>
+                                    <Image
+                                        src={item.image_url}
+                                        alt={item.category}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                    {/* Hover Actions */}
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem className="gap-2 text-destructive" onClick={() => handleDeleteItem(item.id)}>
+                                                    <Trash2 className="h-4 w-4" /> Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </div>
+
+                                <div className={cn(
+                                    "p-3",
+                                    viewMode === "list" && "flex-1 flex items-center justify-between"
+                                )}>
+                                    <div>
+                                        <h3 className="font-medium text-sm text-foreground truncate">{item.category}</h3>
+                                        <Badge variant="secondary" className="mt-1 text-xs">
+                                            {getCategoryDisplayName(item.categoryGroup)}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Empty State */}
+                {!loading && !error && filteredItems.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <Search className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">No items found</h3>
+                        <p className="text-muted-foreground mt-1">
+                            {wardrobeItems.length === 0
+                                ? "Upload your first item to get started"
+                                : "Try adjusting your search or filter criteria"}
+                        </p>
+                        {wardrobeItems.length === 0 && (
+                            <Button onClick={() => setIsNewItemModalOpen(true)} className="mt-4">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Items
+                            </Button>
+                        )}
+                    </div>
+                )}
             </div>
-          </div>
-        )}
-      </div>
-    </main>
-  );
+
+            {/* Item Details Dialog */}
+            <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Item Details</DialogTitle>
+                    </DialogHeader>
+                    {selectedItem && (
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Image */}
+                            <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
+                                <Image
+                                    src={selectedItem.image_url}
+                                    alt={selectedItem.category}
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+
+                            {/* Details */}
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="text-sm font-medium text-muted-foreground mb-1">Category</h3>
+                                    <p className="text-lg font-semibold text-foreground">{selectedItem.category}</p>
+                                    <Badge variant="secondary" className="mt-2">{getCategoryDisplayName(selectedItem.categoryGroup)}</Badge>
+                                </div>
+
+                                {Object.keys(selectedItem.attributes).length > 0 && (
+                                    <div className="space-y-3">
+                                        <h3 className="text-sm font-medium text-muted-foreground">Attributes</h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {Object.entries(selectedItem.attributes).map(([key, value]) => {
+                                                if (!value) return null
+                                                return (
+                                                    <div key={key}>
+                                                        <p className="text-xs text-muted-foreground">{ATTRIBUTE_LABELS[key] || key}</p>
+                                                        <p className="text-sm font-medium text-foreground">{value}</p>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedItem.created_at && (
+                                    <div>
+                                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Added On</h3>
+                                        <p className="text-sm text-foreground">
+                                            {new Date(selectedItem.created_at).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            })}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-2 pt-4">
+                                    <Button
+                                        variant="outline"
+                                        className="flex-1 gap-2 text-destructive hover:text-destructive"
+                                        onClick={() => {
+                                            handleDeleteItem(selectedItem.id)
+                                        }}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                        Delete
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            <NewOutfitModal
+                open={isNewItemModalOpen}
+                onClose={() => setIsNewItemModalOpen(false)}
+                onSuccess={fetchWardrobeItems}
+            />
+        </div>
+    )
 }

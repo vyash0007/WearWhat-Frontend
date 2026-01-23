@@ -40,12 +40,14 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
               <AlertDialogTitle className="text-2xl font-bold text-center text-gray-900 pt-6">
                 Unlock all Features
               </AlertDialogTitle>
-              <AlertDialogDescription className="text-center text-gray-600 mt-3">
-                <span className="font-bold text-lg text-gray-800">
+              <div className="text-center mt-3">
+                <div className="font-bold text-lg text-gray-800">
                   Pro Personal
-                </span>
-                <p className="text-sm mt-1">Enjoy all exclusive features</p>
-              </AlertDialogDescription>
+                </div>
+                <AlertDialogDescription className="text-sm text-gray-600">
+                  Enjoy all exclusive features
+                </AlertDialogDescription>
+              </div>
             </AlertDialogHeader>
             <div className="my-6">
               <ul className="space-y-3 text-gray-700 text-sm">
