@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Camera, LogOut, Edit3, Heart, MessageCircle, MoreHorizontal, Trash2, Settings, Crown, X } from "lucide-react"
+import { Camera, LogOut, Edit3, Heart, MessageCircle, MoreHorizontal, Trash2, Settings, Crown, X, Check } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -23,6 +23,7 @@ import type { Post } from "@/lib/api/posts"
 import { useRouter } from "next/navigation"
 import { PostCard } from "@/components/social/PostCard"
 import { PostDetail } from "@/components/social/PostDetail"
+import UpgradeToProModal from "@/components/dashboard/UpgradeToProModal"
 
 export default function ProfilePage() {
     const router = useRouter()
@@ -39,6 +40,7 @@ export default function ProfilePage() {
     const [editedLastName, setEditedLastName] = useState("")
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
     const [isUploadingImage, setIsUploadingImage] = useState(false)
+    const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
 
     useEffect(() => {
         fetchProfileData()
@@ -309,7 +311,12 @@ export default function ProfilePage() {
                             </div>
 
                             {/* Pro Badge or Upgrade */}
-                            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 bg-transparent"
+                                onClick={() => setIsUpgradeModalOpen(true)}
+                            >
                                 <Crown className="h-4 w-4 text-amber-500" />
                                 Upgrade to Pro
                             </Button>
@@ -393,6 +400,12 @@ export default function ProfilePage() {
                     </div>
                 )}
             </div>
+
+            {/* Upgrade to Pro Modal */}
+            <UpgradeToProModal
+                isOpen={isUpgradeModalOpen}
+                onClose={() => setIsUpgradeModalOpen(false)}
+            />
         </div>
     )
 }

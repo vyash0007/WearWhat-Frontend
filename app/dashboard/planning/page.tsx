@@ -189,9 +189,60 @@ export default function PlanningPage() {
 
                 {/* Loading State */}
                 {loading && (
-                    <div className="flex flex-col items-center justify-center py-16">
-                        <ShirtLoader size="xl" />
-                        <p className="text-muted-foreground mt-4">Creating your outfit...</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 md:gap-6">
+                        {/* Left Column - Weather & Label */}
+                        <div className="lg:col-span-1 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-3 sm:gap-4">
+                            {/* Weather Widget */}
+                            <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border p-3 sm:p-4 flex flex-col items-center flex-shrink-0">
+                                <CloudRain className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-muted-foreground mb-1 sm:mb-2" />
+                                <span className="text-xl sm:text-2xl md:text-2xl font-bold text-foreground">22°</span>
+                                <span className="text-[10px] xs:text-xs text-muted-foreground">{days[selectedDay].date}</span>
+                            </div>
+
+                            {/* Vertical Label - Hidden on mobile, shown on desktop */}
+                            <div className="hidden lg:flex items-center justify-center flex-1 min-h-[400px]">
+                                <span className="text-5xl xl:text-6xl 2xl:text-7xl font-black tracking-tighter text-primary/30 [writing-mode:vertical-lr] rotate-180 uppercase select-none pointer-events-none break-words">
+                                    {planInput}
+                                </span>
+                            </div>
+
+                            {/* Horizontal Label - Shown on mobile only */}
+                            <div className="lg:hidden flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm font-semibold text-primary/70 uppercase truncate">
+                                    {planInput}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* The Fit Section - Loading */}
+                        <div className="lg:col-span-5">
+                            <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border overflow-hidden h-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
+                                <div className="p-3 sm:p-4 border-b border-border">
+                                    <h2 className="text-base sm:text-lg font-bold text-foreground text-center">THE FIT</h2>
+                                </div>
+                                <div className="p-3 sm:p-4 md:p-6 h-[calc(100%-50px)] sm:h-[calc(100%-60px)] flex items-center justify-center">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <ShirtLoader size="lg" />
+                                        <p className="text-sm text-muted-foreground">Generating...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* The Inspo Section - Loading */}
+                        <div className="lg:col-span-6">
+                            <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border overflow-hidden h-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
+                                <div className="p-3 sm:p-4 border-b border-border">
+                                    <h2 className="text-base sm:text-lg font-bold text-foreground text-center">THE INSPO</h2>
+                                </div>
+                                <div className="p-3 sm:p-4 md:p-6 h-[calc(100%-50px)] sm:h-[calc(100%-60px)] flex items-center justify-center">
+                                    <div className="flex flex-col items-center gap-4">
+                                        <ShirtLoader size="lg" />
+                                        <p className="text-sm text-muted-foreground">Generating...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -226,7 +277,7 @@ export default function PlanningPage() {
                                         {recommendation.prompt}
                                     </span>
                                 </div>
-                                
+
                                 {/* Horizontal Label - Shown on mobile only */}
                                 <div className="lg:hidden flex-1 min-w-0">
                                     <p className="text-xs sm:text-sm font-semibold text-primary/70 uppercase truncate">
@@ -348,12 +399,22 @@ export default function PlanningPage() {
 
                 {/* Empty State */}
                 {!recommendation && !loading && !error && (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                            <Calendar className="h-8 w-8 text-muted-foreground" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
+                        {/* The Fit Section - Empty */}
+                        <div>
+                            <h2 className="text-base sm:text-lg md:text-xl font-bold text-foreground text-center mb-3 sm:mb-4">THE FIT</h2>
+                            <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg sm:rounded-xl md:rounded-2xl min-h-[250px] sm:min-h-[300px] md:min-h-[350px] flex items-center justify-center bg-muted/20">
+                                <Calendar className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-muted-foreground/40" />
+                            </div>
                         </div>
-                        <h3 className="text-lg font-semibold text-foreground">No outfit planned</h3>
-                        <p className="text-muted-foreground mt-1">Enter your plan above to get AI outfit suggestions</p>
+
+                        {/* The Inspo Section - Empty */}
+                        <div>
+                            <h2 className="text-base sm:text-lg md:text-xl font-bold text-foreground text-center mb-3 sm:mb-4">THE INSPO</h2>
+                            <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg sm:rounded-xl md:rounded-2xl min-h-[250px] sm:min-h-[300px] md:min-h-[350px] flex items-center justify-center bg-muted/20">
+                                <Calendar className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-muted-foreground/40" />
+                            </div>
+                        </div>
                     </div>
                 )}
 
