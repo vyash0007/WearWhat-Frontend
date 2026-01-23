@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, X, Smile } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -13,7 +13,8 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
-import type { Post } from "@/lib/api/posts"
+import { postsService } from "@/lib/api/posts"
+import type { Post, Comment } from "@/lib/api/posts"
 
 interface PostDetailProps {
     post: Post | null
@@ -25,6 +26,44 @@ interface PostDetailProps {
 
 export function PostDetail({ post, isOpen, onClose, onLike, isLiked }: PostDetailProps) {
     const [comment, setComment] = useState("")
+    const [comments, setComments] = useState<Comment[]>([])
+    const [loadingComments, setLoadingComments] = useState(false)
+    const [postingComment, setPostingComment] = useState(false)
+
+    useEffect(() => {
+        if (isOpen && post) {
+            fetchComments()
+        }
+    }, [isOpen, post])
+
+    const fetchComments = async () => {
+        if (!post) return
+        try {
+            setLoadingComments(true)
+            const response = await postsService.getComments(post.id)
+            setComments(response.comments)
+        } catch (err) {
+            console.error("Error fetching comments:", err)
+        } finally {
+            setLoadingComments(false)
+        }
+    }
+
+    const handlePostComment = async () => {
+        if (!comment.trim() || !post || postingComment) return
+
+        try {
+            setPostingComment(true)
+            const response = await postsService.addComment(post.id, comment.trim())
+            setComments(prev => [response.comment, ...prev])
+            setComment("")
+        } catch (err) {
+            console.error("Error posting comment:", err)
+            alert("Failed to post comment")
+        } finally {
+            setPostingComment(false)
+        }
+    }
 
     if (!post) return null
 
@@ -97,12 +136,36 @@ export function PostDetail({ post, isOpen, onClose, onLike, isLiked }: PostDetai
                                 </div>
                             </div>
 
-                            {/* Placeholder for real comments */}
-                            <div className="py-8 text-center text-muted-foreground text-sm">
-                                <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                                <p>No comments yet.</p>
-                                <p className="text-xs">Start the conversation!</p>
-                            </div>
+                            {/* Comments List */}
+                            {loadingComments ? (
+                                <div className="py-8 text-center text-muted-foreground text-sm">
+                                    <p>Loading comments...</p>
+                                </div>
+                            ) : comments.length > 0 ? (
+                                comments.map((c) => (
+                                    <div key={c.id} className="flex gap-3">
+                                        <Avatar className="h-8 w-8 flex-shrink-0">
+                                            {c.user_profile_image ? (
+                                                <AvatarImage src={c.user_profile_image} alt={c.user_name} />
+                                            ) : null}
+                                            <AvatarFallback>{getInitials(c.user_name)}</AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex flex-col gap-1 flex-1">
+                                            <p className="text-sm">
+                                                <span className="font-bold mr-2">{c.user_name}</span>
+                                                <span className="text-foreground">{c.text}</span>
+                                            </p>
+                                            <span className="text-[10px] text-muted-foreground uppercase">{getTimeAgo(c.created_at)}</span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-8 text-center text-muted-foreground text-sm">
+                                    <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                                    <p>No comments yet.</p>
+                                    <p className="text-xs">Start the conversation!</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Interactions Bottom Area */}
@@ -141,16 +204,24 @@ export function PostDetail({ post, isOpen, onClose, onLike, isLiked }: PostDetai
                                     className="border-none shadow-none focus-visible:ring-0 p-0 text-sm bg-transparent"
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey && comment.trim()) {
+                                            e.preventDefault()
+                                            handlePostComment()
+                                        }
+                                    }}
                                 />
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     className={cn(
                                         "font-bold text-primary hover:bg-transparent px-0",
-                                        !comment.trim() && "opacity-50 pointer-events-none"
+                                        (!comment.trim() || postingComment) && "opacity-50 pointer-events-none"
                                     )}
+                                    onClick={handlePostComment}
+                                    disabled={!comment.trim() || postingComment}
                                 >
-                                    Post
+                                    {postingComment ? "Posting..." : "Post"}
                                 </Button>
                             </div>
                         </div>

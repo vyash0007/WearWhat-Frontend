@@ -34,7 +34,7 @@ const navItems = [
 
 function NavContent({ pathname, onItemClick }: { pathname: string; onItemClick?: () => void }) {
     return (
-        <nav className="flex flex-col gap-1 p-3">
+        <nav className="flex flex-col gap-1 p-2 sm:p-3">
             {navItems.map((item) => {
                 const isActive = pathname === item.href
                 return (
@@ -43,14 +43,14 @@ function NavContent({ pathname, onItemClick }: { pathname: string; onItemClick?:
                         href={item.href}
                         onClick={onItemClick}
                         className={cn(
-                            "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+                            "flex items-center gap-2.5 sm:gap-3 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all duration-200",
                             isActive
                                 ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-primary/20"
                                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         )}
                     >
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.label}</span>
+                        <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        <span className="truncate">{item.label}</span>
                     </Link>
                 )
             })}
@@ -90,27 +90,27 @@ export default function DashboardLayout({
 
             {/* Mobile Header */}
             <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar border-b border-sidebar-border">
-                <div className="flex h-16 items-center justify-between px-4">
-                    <div className="flex items-center gap-2">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-primary">
-                            <Shirt className="h-5 w-5 text-sidebar-primary-foreground" />
+                <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+                        <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-sidebar-primary flex-shrink-0">
+                            <Shirt className="h-4 w-4 sm:h-5 sm:w-5 text-sidebar-primary-foreground" />
                         </div>
-                        <span className="text-lg font-bold text-sidebar-foreground">WearWhat</span>
+                        <span className="text-base sm:text-lg font-bold text-sidebar-foreground truncate">WearWhat</span>
                     </div>
                     <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-sidebar-foreground">
-                                <Menu className="h-6 w-6" />
+                            <Button variant="ghost" size="icon" className="text-sidebar-foreground h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
+                                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="w-72 bg-sidebar p-0 border-sidebar-border">
-                            <div className="flex h-16 items-center gap-2 px-6 border-b border-sidebar-border">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-primary">
-                                    <Shirt className="h-5 w-5 text-sidebar-primary-foreground" />
+                        <SheetContent side="left" className="bg-sidebar p-0 border-sidebar-border w-[85%] sm:w-[320px] max-w-sm">
+                            <div className="flex h-14 sm:h-16 items-center gap-2 px-4 sm:px-6 border-b border-sidebar-border">
+                                <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-sidebar-primary flex-shrink-0">
+                                    <Shirt className="h-4 w-4 sm:h-5 sm:w-5 text-sidebar-primary-foreground" />
                                 </div>
-                                <span className="text-xl font-bold text-sidebar-foreground">WearWhat</span>
+                                <span className="text-lg sm:text-xl font-bold text-sidebar-foreground truncate">WearWhat</span>
                             </div>
-                            <div className="py-4">
+                            <div className="overflow-y-auto h-[calc(100vh-56px)] sm:h-[calc(100vh-64px)]">
                                 <NavContent pathname={pathname} onItemClick={() => setMobileOpen(false)} />
                             </div>
                         </SheetContent>
@@ -137,7 +137,7 @@ export default function DashboardLayout({
                     </div>
                 </div>
 
-                <div className="pt-16 lg:pt-0">
+                <div className="pt-14 sm:pt-16 lg:pt-0">
                     {children}
                 </div>
             </main>

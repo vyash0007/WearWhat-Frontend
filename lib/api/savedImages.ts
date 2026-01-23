@@ -3,7 +3,7 @@
  */
 
 import { apiClient } from './client';
-import type { SavedImageResponse, SavedImageListResponse, SaveImageRequest } from './types';
+import type { SavedImageResponse, SavedImageListResponse, SaveImageRequest, UpdateNoteRequest } from './types';
 
 export const savedImagesService = {
   /**
@@ -18,6 +18,13 @@ export const savedImagesService = {
    */
   async getAll(): Promise<SavedImageListResponse> {
     return apiClient.get<SavedImageListResponse>('/saved-images');
+  },
+
+  /**
+   * Update note for a saved image
+   */
+  async updateNote(data: UpdateNoteRequest): Promise<SavedImageResponse> {
+    return apiClient.put<SavedImageResponse>('/saved-images/note', data);
   },
 
   /**

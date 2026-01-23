@@ -74,7 +74,7 @@ export default function EditImageModal({ open, onClose, item, onDelete }: EditIm
         await savedImagesService.delete(currentItem.saved_image_id);
         setCurrentItem(prev => prev ? { ...prev, saved: false, saved_image_id: undefined } : null);
       } else {
-        const response = await savedImagesService.saveImage({ image_url: currentItem.image_url });
+        const response = await savedImagesService.saveImage({ image_id: currentItem.id });
         setCurrentItem(prev => prev ? { ...prev, saved: true, saved_image_id: response.id } : null);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);

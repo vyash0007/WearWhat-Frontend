@@ -57,8 +57,21 @@ export const calendarOutfitsService = {
   // Get outfit for specific date
   getByDate: async (date: string): Promise<CalendarOutfit | null> => {
     try {
-      return await apiClient.get<CalendarOutfit>(`/calendar-outfits/${date}`);
-    } catch {
+      const response = await apiClient.get<{ success: boolean; outfit?: CalendarOutfit; message?: string }>(`/calendar-outfits/${date}`);
+      if (response.success && response.outfit) {
+        return response.outfit;
+      }
+      return null;
+    } catch (err: any) {
+      // If 404 or not found, return null (this is expected when no outfit exists)
+      if (err.status === 404 || err.status === 0) {
+        return null;
+      }
+      // Check if it's a "not found" message
+      if (err.message && (err.message.includes("not found") || err.message.includes("No outfit"))) {
+        return null;
+      }
+      console.error("Error fetching calendar outfit:", err);
       return null;
     }
   },

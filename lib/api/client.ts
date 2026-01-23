@@ -84,6 +84,11 @@ class ApiClient {
         } as ApiError;
       }
 
+      // Log response for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`API Response [${options.method || 'GET'} ${endpoint}]:`, data);
+      }
+
       return data as T;
     } catch (error) {
       if ((error as ApiError).status) {

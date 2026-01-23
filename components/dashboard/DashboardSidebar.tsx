@@ -18,9 +18,9 @@ export default function DashboardSidebar() {
     const pathname = usePathname();
 
     return (
-        <aside className="w-64 h-screen flex flex-col p-4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 fixed left-0 top-0">
+        <aside className="w-64 h-screen flex flex-col p-4 bg-sidebar border-r border-sidebar-border fixed left-0 top-0">
             <div className="flex items-center gap-2 px-4 mb-8">
-                <h1 className="text-xl font-bold">WearWhat</h1>
+                <h1 className="text-xl font-bold text-sidebar-foreground">WearWhat</h1>
             </div>
             <nav className="flex flex-col gap-2">
                 {sidebarLinks.map((link) => {
@@ -32,8 +32,8 @@ export default function DashboardSidebar() {
                             className={cn(
                                 "flex items-center gap-3 px-4 py-2 rounded-lg text-base font-medium transition-colors",
                                 isActive
-                                    ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
-                                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                             )}
                         >
                             <link.icon className="w-5 h-5" />

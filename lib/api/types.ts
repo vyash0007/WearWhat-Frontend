@@ -95,13 +95,19 @@ export interface SavedImage {
   id: string;
   user_id: string;
   image_id: string;
-  image_url: string;
+  image_url?: string; // May not always be present
   note: string | null;
   saved_at: string;
 }
 
+export interface UpdateNoteRequest {
+  saved_image_id: string;
+  note: string;
+}
+
 export interface SaveImageRequest {
-  image_url: string;
+  image_id: string; // Wardrobe item ID (UUID)
+  note?: string | null;
 }
 
 export interface SavedImageResponse {

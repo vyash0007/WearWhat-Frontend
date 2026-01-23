@@ -34,6 +34,11 @@ export default function ProfilePage() {
     const [error, setError] = useState<string | null>(null)
     const [selectedPost, setSelectedPost] = useState<Post | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const [isEditingName, setIsEditingName] = useState(false)
+    const [editedFirstName, setEditedFirstName] = useState("")
+    const [editedLastName, setEditedLastName] = useState("")
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
+    const [isUploadingImage, setIsUploadingImage] = useState(false)
 
     useEffect(() => {
         fetchProfileData()
@@ -50,11 +55,21 @@ export default function ProfilePage() {
 
             // Fetch user's posts
             const postsResponse = await postsService.getMyPosts(20, 0)
-            setUserPosts(postsResponse.posts)
+            console.log("Profile posts response:", postsResponse)
+            if (postsResponse && postsResponse.posts) {
+                setUserPosts(postsResponse.posts)
+            } else {
+                console.warn("Unexpected posts response format:", postsResponse)
+                setUserPosts([])
+            }
 
             // Fetch saved images count
             const savedImages = await savedImagesService.getAll()
             setSavedCount(savedImages.length)
+
+            // Set initial values for editing
+            setEditedFirstName(profileResponse.user.first_name)
+            setEditedLastName(profileResponse.user.last_name)
         } catch (err: any) {
             console.error("Error fetching profile data:", err)
             setError(err.message || "Failed to load profile")
@@ -100,6 +115,44 @@ export default function ProfilePage() {
         return `${Math.floor(seconds / 604800)}w ago`
     }
 
+    const handleSaveName = async () => {
+        if (!editedFirstName.trim() || !editedLastName.trim()) {
+            alert("First name and last name are required")
+            return
+        }
+
+        try {
+            setIsUpdatingProfile(true)
+            const response = await userService.updateProfile({
+                first_name: editedFirstName.trim(),
+                last_name: editedLastName.trim(),
+            })
+            setUserProfile(response.user)
+            setIsEditingName(false)
+        } catch (err) {
+            console.error("Error updating profile:", err)
+            alert("Failed to update profile")
+        } finally {
+            setIsUpdatingProfile(false)
+        }
+    }
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        try {
+            setIsUploadingImage(true)
+            const response = await userService.uploadProfileImage(file)
+            setUserProfile(response.user)
+        } catch (err) {
+            console.error("Error uploading image:", err)
+            alert("Failed to upload profile image")
+        } finally {
+            setIsUploadingImage(false)
+        }
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen p-4 md:p-6 lg:p-8">
@@ -142,23 +195,85 @@ export default function ProfilePage() {
                                     {getInitials(userProfile.first_name, userProfile.last_name)}
                                 </AvatarFallback>
                             </Avatar>
-                            <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                            <label className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                 <Camera className="h-4 w-4" />
-                            </button>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleImageUpload}
+                                    disabled={isUploadingImage}
+                                />
+                            </label>
+                            {isUploadingImage && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                                    <ShirtLoader size="sm" />
+                                </div>
+                            )}
                         </div>
 
                         {/* Profile Info */}
                         <div className="flex-1 space-y-4">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:justify-between">
                                 <div>
-                                    <div className="flex items-center gap-2">
-                                        <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-                                            {userProfile.first_name} {userProfile.last_name}
-                                        </h1>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                                            <Edit3 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                    {isEditingName ? (
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <input
+                                                type="text"
+                                                value={editedFirstName}
+                                                onChange={(e) => setEditedFirstName(e.target.value)}
+                                                className="text-2xl md:text-3xl font-bold text-foreground bg-transparent border-b-2 border-primary focus:outline-none w-32"
+                                                placeholder="First name"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={editedLastName}
+                                                onChange={(e) => setEditedLastName(e.target.value)}
+                                                className="text-2xl md:text-3xl font-bold text-foreground bg-transparent border-b-2 border-primary focus:outline-none w-32"
+                                                placeholder="Last name"
+                                            />
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={handleSaveName}
+                                                disabled={isUpdatingProfile}
+                                            >
+                                                {isUpdatingProfile ? (
+                                                    <ShirtLoader size="sm" />
+                                                ) : (
+                                                    <Check className="h-4 w-4 text-green-500" />
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => {
+                                                    setIsEditingName(false)
+                                                    setEditedFirstName(userProfile.first_name)
+                                                    setEditedLastName(userProfile.last_name)
+                                                }}
+                                                disabled={isUpdatingProfile}
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                                                {userProfile.first_name} {userProfile.last_name}
+                                            </h1>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => setIsEditingName(true)}
+                                            >
+                                                <Edit3 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    )}
                                     <p className="text-muted-foreground">{userProfile.email}</p>
                                 </div>
                                 <div className="flex gap-2">

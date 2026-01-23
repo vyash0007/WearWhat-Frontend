@@ -24,57 +24,84 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="bg-transparent border-none shadow-none max-w-[280px] w-full p-0">
+      <AlertDialogContent className="bg-transparent border-none shadow-none !max-w-[160px] w-[160px] p-0 sm:!max-w-[160px]">
         <div className="relative">
-          <div className="absolute top-[-15px] left-[-15px] w-[105%] h-[105%] bg-black rounded-3xl transform -rotate-6"></div>
-          <div className="relative bg-white rounded-2xl shadow-xl p-8">
+          {/* Tilted creme/off-white background */}
+          <div className="absolute top-[-15px] left-[-15px] w-[105%] h-[105%] bg-[#FAF9F6] rounded-3xl transform -rotate-6"></div>
+          
+          {/* Main dark card */}
+          <div className="relative bg-[#1C1C1C] rounded-2xl shadow-xl p-8 text-white">
+            {/* Close button */}
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="absolute top-4 right-4 rounded-full h-8 w-8"
+              className="absolute top-4 right-4 rounded-full h-8 w-8 text-white hover:bg-white/10 hover:text-white"
             >
               <X className="h-4 w-4" />
             </Button>
+            
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-2xl font-bold text-center text-gray-900 pt-6">
+              <AlertDialogTitle className="text-2xl font-bold text-center text-white pt-6">
                 Unlock all Features
               </AlertDialogTitle>
               <div className="text-center mt-3">
-                <div className="font-bold text-lg text-gray-800">
+                <div className="font-bold text-lg text-white">
                   Pro Personal
                 </div>
-                <AlertDialogDescription className="text-sm text-gray-600">
+                <AlertDialogDescription className="text-sm text-gray-300">
                   Enjoy all exclusive features
                 </AlertDialogDescription>
               </div>
             </AlertDialogHeader>
+            
             <div className="my-6">
-              <ul className="space-y-3 text-gray-700 text-sm">
+              <ul className="space-y-3 text-white text-sm">
                 <li className="flex items-center">
-                  <Check className="text-green-500 mr-3 h-5 w-5" />
+                  <div className="mr-3 flex-shrink-0">
+                    <div className="w-5 h-5 border border-white rounded-sm flex items-center justify-center">
+                      <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
+                    </div>
+                  </div>
                   <span>Onboarding and training options</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="text-green-500 mr-3 h-5 w-5" />
+                  <div className="mr-3 flex-shrink-0">
+                    <div className="w-5 h-5 border border-white rounded-sm flex items-center justify-center">
+                      <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
+                    </div>
+                  </div>
                   <span>Reporting</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="text-green-500 mr-3 h-5 w-5" />
+                  <div className="mr-3 flex-shrink-0">
+                    <div className="w-5 h-5 border border-white rounded-sm flex items-center justify-center">
+                      <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
+                    </div>
+                  </div>
                   <span>Advance Search</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="text-green-500 mr-3 h-5 w-5" />
+                  <div className="mr-3 flex-shrink-0">
+                    <div className="w-5 h-5 border border-white rounded-sm flex items-center justify-center">
+                      <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
+                    </div>
+                  </div>
                   <span>Private Projects</span>
                 </li>
                 <li className="flex items-center">
-                  <Check className="text-green-500 mr-3 h-5 w-5" />
+                  <div className="mr-3 flex-shrink-0">
+                    <div className="w-5 h-5 border border-white rounded-sm flex items-center justify-center">
+                      <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
+                    </div>
+                  </div>
                   <span>Lifetime Updates</span>
                 </li>
               </ul>
             </div>
+            
             <AlertDialogFooter>
-              <Button className="w-full bg-black text-white hover:bg-gray-800 py-5 text-md">
+              <Button className="w-full bg-[#2A2A2A] hover:bg-[#333333] text-white font-medium py-5 text-md rounded-lg border-0">
                 <ArrowUp className="mr-2 h-5 w-5" />
                 Upgrade to Pro Personal
               </Button>

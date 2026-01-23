@@ -42,10 +42,17 @@ export default function CommunityPage() {
             setLoading(true)
             setError(null)
             const response = await postsService.getFeed(20, 0)
-            setPosts(response.posts)
+            console.log("Posts response:", response)
+            if (response && response.posts) {
+                setPosts(response.posts)
+            } else {
+                console.warn("Unexpected response format:", response)
+                setPosts([])
+            }
         } catch (err: any) {
             console.error("Error fetching posts:", err)
             setError(err.message || "Failed to load posts")
+            setPosts([])
         } finally {
             setLoading(false)
         }
