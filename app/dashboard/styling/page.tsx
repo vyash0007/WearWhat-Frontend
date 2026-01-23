@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import Image from "next/image"
 import { Search, ChevronRight, Check, X, Loader2 } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
@@ -27,29 +28,19 @@ export default function StylingPage() {
     const [selectedCategory, setSelectedCategory] = useState("upperWear")
     const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null)
     const [step, setStep] = useState<1 | 2>(1)
-    const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([])
-    const [loading, setLoading] = useState(true)
     const [loadingRecommendation, setLoadingRecommendation] = useState(false)
     const [recommendation, setRecommendation] = useState<StyleRecommendationResponse | null>(null)
-    const [error, setError] = useState<string | null>(null)
 
-    useEffect(() => {
-        fetchWardrobeItems()
-    }, [])
-
-    const fetchWardrobeItems = async () => {
-        try {
-            setLoading(true)
-            setError(null)
+    // Fetch wardrobe items with React Query
+    const { data: wardrobeData, isLoading: loading, error, refetch } = useQuery({
+        queryKey: ['wardrobe', 'items'],
+        queryFn: async () => {
             const response = await wardrobeService.getItems()
-            setWardrobeItems(response.items)
-        } catch (err: any) {
-            console.error("Error fetching wardrobe items:", err)
-            setError(err.message || "Failed to load wardrobe items")
-        } finally {
-            setLoading(false)
-        }
-    }
+            return response.items
+        },
+    })
+
+    const wardrobeItems = wardrobeData || []
 
     const handleGetSuggestions = async () => {
         if (!selectedItem) return
@@ -95,8 +86,8 @@ export default function StylingPage() {
                         {/* Header */}
                         <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex-1 min-w-0">
-                                <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground mb-1 sm:mb-2 break-words">AI Styling Results</h1>
-                                <p className="text-xs sm:text-sm md:text-base text-muted-foreground break-words">
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">AI Styling Results</h1>
+                                <p className="text-sm text-muted-foreground mt-2">
                                     Here are outfit suggestions based on your selected item
                                 </p>
                             </div>
@@ -164,16 +155,28 @@ export default function StylingPage() {
             <div className="p-3 sm:p-4 md:p-6 lg:p-8 pb-24 sm:pb-6">
                 <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
                     {/* Header */}
-                    <div className="flex flex-col gap-2 sm:gap-3 md:gap-4">
-                        <div className="min-w-0">
-                            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground mb-1 sm:mb-2 break-words">AI Styling</h1>
-                            <p className="text-xs sm:text-sm md:text-base text-muted-foreground break-words">
-                                Select an item from your wardrobe to get outfit suggestions
-                            </p>
+                    <div className="min-w-0">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">AI Styling</h1>
+                        <p className="text-sm text-muted-foreground mt-2">
+                            Select an item from your wardrobe to get outfit suggestions
+                        </p>
+                    </div>
+
+                    {/* Search Bar and Step Indicator Row */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                        {/* Search Bar */}
+                        <div className="relative w-full sm:max-w-md order-2 sm:order-1">
+                            <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search items..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-8 sm:pl-10 bg-card border-border text-xs sm:text-sm md:text-base h-9 sm:h-10"
+                            />
                         </div>
 
                         {/* Step Indicator */}
-                        <div className="flex items-center gap-1.5 sm:gap-2 bg-card rounded-full px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 border border-border w-fit">
+                        <div className="flex items-center gap-1.5 sm:gap-2 bg-card rounded-full px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 border border-border w-fit order-1 sm:order-2 flex-shrink-0">
                             <Badge variant="default" className="rounded-full text-[10px] xs:text-xs sm:text-sm px-2 py-0.5">
                                 1. Select
                             </Badge>
@@ -184,32 +187,21 @@ export default function StylingPage() {
                         </div>
                     </div>
 
-                    {/* Search Bar */}
-                    <div className="relative w-full sm:max-w-md">
-                        <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search items..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-8 sm:pl-10 bg-card border-border text-xs sm:text-sm md:text-base h-9 sm:h-10"
-                        />
-                    </div>
-
                     {/* Category Filter */}
                     <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
                         {categories.map((category) => (
-                            <Button
+                            <button
                                 key={category}
-                                variant={selectedCategory === category ? "default" : "outline"}
-                                size="sm"
                                 onClick={() => setSelectedCategory(category)}
                                 className={cn(
-                                    "rounded-full whitespace-nowrap flex-shrink-0 text-[10px] xs:text-xs sm:text-sm px-2.5 sm:px-3 py-1 h-auto",
-                                    selectedCategory === category && "shadow-lg shadow-primary/20"
+                                    "rounded-full whitespace-nowrap flex-shrink-0 text-[10px] xs:text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 transition-colors",
+                                    selectedCategory === category
+                                        ? "bg-foreground text-background font-medium"
+                                        : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
                                 {categoryLabels[category]}
-                            </Button>
+                            </button>
                         ))}
                     </div>
 
@@ -228,8 +220,8 @@ export default function StylingPage() {
                                 <X className="h-8 w-8 text-destructive" />
                             </div>
                             <h3 className="text-lg font-semibold text-foreground">Failed to load items</h3>
-                            <p className="text-muted-foreground mt-1">{error}</p>
-                            <Button onClick={fetchWardrobeItems} className="mt-4">Try Again</Button>
+                            <p className="text-muted-foreground mt-1">{error instanceof Error ? error.message : "Failed to load items"}</p>
+                            <Button onClick={() => refetch()} className="mt-4">Try Again</Button>
                         </div>
                     )}
 

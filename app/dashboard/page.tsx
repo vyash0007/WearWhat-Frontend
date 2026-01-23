@@ -10,8 +10,8 @@ import SavedPage from "./saved/page";
 export default function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 md:p-8">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-      <p>Welcome to your dashboard!</p>
+      <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">Dashboard</h1>
+      <p className="text-sm text-muted-foreground mt-2">Welcome to your dashboard!</p>
     </div>
   );
 }

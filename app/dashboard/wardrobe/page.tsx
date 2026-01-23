@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Image from "next/image"
-import { Search, Plus, Filter, Grid3X3, List, MoreHorizontal, Trash2, Edit, Bookmark, X } from "lucide-react"
+import { Search, Plus, Grid3X3, List, MoreHorizontal, Trash2, X } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,40 +39,30 @@ const categoryGroupMap: Record<string, string> = {
 
 export default function WardrobePage() {
     const router = useRouter()
+    const queryClient = useQueryClient()
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("All")
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
     const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null)
-    const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
     const [isNewItemModalOpen, setIsNewItemModalOpen] = useState(false)
 
-    // Fetch wardrobe items on mount
-    useEffect(() => {
-        fetchWardrobeItems()
-    }, [])
-
-    const fetchWardrobeItems = async () => {
-        try {
-            setLoading(true)
-            setError(null)
+    // Fetch wardrobe items with React Query
+    const { data: wardrobeData, isLoading: loading, error, refetch } = useQuery({
+        queryKey: ['wardrobe', 'items'],
+        queryFn: async () => {
             const response = await wardrobeService.getItems()
-            setWardrobeItems(response.items)
-        } catch (err: any) {
-            console.error("Error fetching wardrobe items:", err)
-            setError(err.message || "Failed to load wardrobe items")
-        } finally {
-            setLoading(false)
-        }
-    }
+            return response.items
+        },
+    })
+
+    const wardrobeItems = wardrobeData || []
 
     const handleDeleteItem = async (itemId: string) => {
         try {
             await wardrobeService.deleteItem(itemId)
-            // Remove from local state
-            setWardrobeItems(prev => prev.filter(item => item.id !== itemId))
             setSelectedItem(null)
+            // Invalidate and refetch wardrobe items
+            queryClient.invalidateQueries({ queryKey: ['wardrobe'] })
         } catch (err: any) {
             console.error("Error deleting item:", err)
             alert("Failed to delete item")
@@ -108,8 +99,8 @@ export default function WardrobePage() {
                 {/* Header */}
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Wardrobe</h1>
-                        <p className="text-muted-foreground mt-1">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">Wardrobe</h1>
+                        <p className="text-sm text-muted-foreground mt-2">
                             You have <span className="font-semibold text-foreground">{wardrobeItems.length} items</span> in your wardrobe.
                         </p>
                     </div>
@@ -191,8 +182,8 @@ export default function WardrobePage() {
                             <X className="h-8 w-8 text-destructive" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">Failed to load wardrobe</h3>
-                        <p className="text-muted-foreground mt-1">{error}</p>
-                        <Button onClick={fetchWardrobeItems} className="mt-4">Try Again</Button>
+                        <p className="text-muted-foreground mt-1">{error instanceof Error ? error.message : "Failed to load wardrobe"}</p>
+                        <Button onClick={() => refetch()} className="mt-4">Try Again</Button>
                     </div>
                 )}
 
@@ -357,7 +348,7 @@ export default function WardrobePage() {
             <NewOutfitModal
                 open={isNewItemModalOpen}
                 onClose={() => setIsNewItemModalOpen(false)}
-                onSuccess={fetchWardrobeItems}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['wardrobe'] })}
             />
         </div>
     )

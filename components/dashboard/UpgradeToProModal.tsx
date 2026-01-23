@@ -24,7 +24,7 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="bg-transparent border-none shadow-none !max-w-[160px] w-[160px] p-0 sm:!max-w-[160px]">
+      <AlertDialogContent className="bg-transparent border-none shadow-none max-w-[90vw] w-full p-0 sm:max-w-md">
         <div className="relative">
           {/* Tilted creme/off-white background */}
           <div className="absolute top-[-15px] left-[-15px] w-[105%] h-[105%] bg-[#FAF9F6] rounded-3xl transform -rotate-6"></div>

@@ -107,9 +107,14 @@ export function PostCard({ post, onLike, onCommentClick, onDelete, isLiked }: Po
                         >
                             <MessageCircle className="h-6 w-6" />
                         </button>
-                        <button className="hover:text-muted-foreground transition-colors">
-                            <Send className="h-6 w-6" />
-                        </button>
+                        <div className="relative group">
+                            <button className="hover:text-muted-foreground transition-colors">
+                                <Send className="h-6 w-6" />
+                            </button>
+                            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-[10px] text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                Coming soon
+                            </span>
+                        </div>
                     </div>
                     <button className="hover:text-muted-foreground transition-colors">
                         <Bookmark className="h-6 w-6" />

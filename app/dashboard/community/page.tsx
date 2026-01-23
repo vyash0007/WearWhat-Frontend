@@ -1,17 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal, TrendingUp, Clock, Users, X } from "lucide-react"
+import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { TrendingUp, Clock, Users, X } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { postsService } from "@/lib/api/posts"
 import type { Post } from "@/lib/api/posts"
@@ -26,37 +19,21 @@ const filters = [
 
 export default function CommunityPage() {
     const [selectedFilter, setSelectedFilter] = useState("For You")
-    const [posts, setPosts] = useState<Post[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
     const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set())
     const [selectedPost, setSelectedPost] = useState<Post | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
+    const queryClient = useQueryClient()
 
-    useEffect(() => {
-        fetchPosts()
-    }, [])
-
-    const fetchPosts = async () => {
-        try {
-            setLoading(true)
-            setError(null)
+    // Fetch posts with React Query
+    const { data: postsData, isLoading: loading, error, refetch } = useQuery({
+        queryKey: ['posts', 'feed'],
+        queryFn: async () => {
             const response = await postsService.getFeed(20, 0)
-            console.log("Posts response:", response)
-            if (response && response.posts) {
-                setPosts(response.posts)
-            } else {
-                console.warn("Unexpected response format:", response)
-                setPosts([])
-            }
-        } catch (err: any) {
-            console.error("Error fetching posts:", err)
-            setError(err.message || "Failed to load posts")
-            setPosts([])
-        } finally {
-            setLoading(false)
-        }
-    }
+            return response?.posts || []
+        },
+    })
+
+    const posts = postsData || []
 
     const toggleLike = async (postId: string) => {
         try {
@@ -73,59 +50,31 @@ export default function CommunityPage() {
                 return newSet
             })
 
-            // Update likes count in posts
-            setPosts(prev => prev.map(post => {
-                if (post.id === postId) {
-                    return {
-                        ...post,
-                        likes_count: likedPosts.has(postId) ? post.likes_count - 1 : post.likes_count + 1
-                    }
-                }
-                return post
-            }))
+            // Invalidate and refetch posts
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
         } catch (err) {
             console.error("Error liking post:", err)
         }
     }
 
-    const handleDeletePost = async (postId: string) => {
-        try {
-            await postsService.delete(postId)
-            setPosts(prev => prev.filter(post => post.id !== postId))
-        } catch (err) {
-            console.error("Error deleting post:", err)
-            alert("Failed to delete post")
+    // Filter posts based on selected tab
+    const getFilteredPosts = () => {
+        if (selectedFilter === "Recent") {
+            const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000)
+            return posts.filter(post => new Date(post.created_at) > twoHoursAgo)
         }
+        return posts
     }
 
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map(n => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2)
-    }
-
-    const getTimeAgo = (dateString: string) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-
-        if (seconds < 60) return 'just now'
-        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-        if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`
-        return `${Math.floor(seconds / 604800)}w ago`
-    }
+    const filteredPosts = getFilteredPosts()
 
     return (
         <div className="min-h-screen p-4 md:p-6 lg:p-8">
             <div className="max-w-4xl mx-auto space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Style Community</h1>
-                    <p className="text-muted-foreground mt-1">
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">Style Community</h1>
+                    <p className="text-sm text-muted-foreground mt-2">
                         Share your favorite outfits and get inspired by others
                     </p>
                 </div>
@@ -173,20 +122,30 @@ export default function CommunityPage() {
                             <X className="h-8 w-8 text-destructive" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">Failed to load posts</h3>
-                        <p className="text-muted-foreground mt-1">{error}</p>
-                        <Button onClick={fetchPosts} className="mt-4">Try Again</Button>
+                        <p className="text-muted-foreground mt-1">{error instanceof Error ? error.message : "Failed to load posts"}</p>
+                        <Button onClick={() => refetch()} className="mt-4">Try Again</Button>
+                    </div>
+                )}
+
+                {/* Following Tab - Coming Soon */}
+                {!loading && !error && selectedFilter === "Following" && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <Users className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">Coming Soon</h3>
+                        <p className="text-muted-foreground mt-1">Follow your favorite creators and see their posts here</p>
                     </div>
                 )}
 
                 {/* Posts Feed */}
-                {!loading && !error && (
+                {!loading && !error && selectedFilter !== "Following" && filteredPosts.length > 0 && (
                     <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
-                        {posts.map((post) => (
+                        {filteredPosts.map((post) => (
                             <PostCard
                                 key={post.id}
                                 post={post}
                                 onLike={toggleLike}
-                                onDelete={handleDeletePost}
                                 isLiked={likedPosts.has(post.id)}
                                 onCommentClick={(p) => {
                                     setSelectedPost(p)
@@ -197,8 +156,19 @@ export default function CommunityPage() {
                     </div>
                 )}
 
-                {/* Empty State */}
-                {!loading && !error && posts.length === 0 && (
+                {/* Empty State - Recent */}
+                {!loading && !error && selectedFilter === "Recent" && filteredPosts.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                            <Clock className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">No recent posts</h3>
+                        <p className="text-muted-foreground mt-1">No posts from the last 2 hours</p>
+                    </div>
+                )}
+
+                {/* Empty State - For You */}
+                {!loading && !error && selectedFilter === "For You" && filteredPosts.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                             <Users className="h-8 w-8 text-muted-foreground" />

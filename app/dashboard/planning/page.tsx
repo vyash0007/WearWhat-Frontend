@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import Image from "next/image"
-import { Send, Trash2, RefreshCw, Share2, Save, CloudRain, X, Calendar } from "lucide-react"
+import { Send, Trash2, RefreshCw, Share2, Save, CloudRain, X, Calendar, Check } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,7 @@ const days = [
 ]
 
 export default function PlanningPage() {
+    const queryClient = useQueryClient()
     const [selectedDay, setSelectedDay] = useState(2)
     const [planInput, setPlanInput] = useState("")
     const [loading, setLoading] = useState(false)
@@ -29,6 +31,13 @@ export default function PlanningPage() {
     const [savedOutfit, setSavedOutfit] = useState<CalendarOutfit | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [isPostModalOpen, setIsPostModalOpen] = useState(false)
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+    // Show toast notification
+    const showToast = (message: string, type: 'success' | 'error') => {
+        setToast({ message, type })
+        setTimeout(() => setToast(null), 3000)
+    }
 
     // Load saved outfit for selected day
     useEffect(() => {
@@ -98,10 +107,10 @@ export default function PlanningPage() {
             })
 
             await loadOutfitForDay(days[selectedDay].dateStr)
-            alert("Outfit saved successfully!")
+            showToast("Outfit saved successfully!", "success")
         } catch (err) {
             console.error("Error saving outfit:", err)
-            alert("Failed to save outfit")
+            showToast("Failed to save outfit", "error")
         }
     }
 
@@ -115,7 +124,7 @@ export default function PlanningPage() {
             setPlanInput("")
         } catch (err) {
             console.error("Error deleting outfit:", err)
-            alert("Failed to delete outfit")
+            showToast("Failed to delete outfit", "error")
         }
     }
 
@@ -133,8 +142,8 @@ export default function PlanningPage() {
             <div className="max-w-6xl mx-auto space-y-4 sm:space-y-5 md:space-y-6">
                 {/* Header */}
                 <div className="min-w-0">
-                    <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground break-words">Outfit Planner</h1>
-                    <p className="text-xs sm:text-sm md:text-base text-muted-foreground mt-1 break-words">
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">Outfit Planner</h1>
+                    <p className="text-sm text-muted-foreground mt-2">
                         Plan your outfits for the week with AI-powered suggestions based on weather.
                     </p>
                 </div>
@@ -425,11 +434,31 @@ export default function PlanningPage() {
                         onClose={() => setIsPostModalOpen(false)}
                         imageUrl={recommendation.combined_image_url}
                         onSuccess={() => {
-                            // Optionally refresh posts or show success message
+                            // Invalidate posts feed so community page shows new post
+                            queryClient.invalidateQueries({ queryKey: ['posts'] })
                         }}
                     />
                 )}
             </div>
+
+            {/* Toast Notification */}
+            {toast && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <div className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border",
+                        toast.type === 'success'
+                            ? "bg-green-500/10 border-green-500/20 text-green-600"
+                            : "bg-destructive/10 border-destructive/20 text-destructive"
+                    )}>
+                        {toast.type === 'success' ? (
+                            <Check className="h-5 w-5" />
+                        ) : (
+                            <X className="h-5 w-5" />
+                        )}
+                        <span className="text-sm font-medium">{toast.message}</span>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

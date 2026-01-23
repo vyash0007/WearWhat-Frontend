@@ -44,9 +44,7 @@ function NavContent({ pathname, onItemClick }: { pathname: string; onItemClick?:
                         onClick={onItemClick}
                         className={cn(
                             "flex items-center gap-2.5 sm:gap-3 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all duration-200",
-                            isActive
-                                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-primary/20"
-                                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+
                         )}
                     >
                         <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
@@ -121,15 +119,15 @@ export default function DashboardLayout({
             {/* Main Content */}
             <main className="flex-1 lg:ml-64">
                 {/* Pro Banner */}
-                <div className="hidden lg:block sticky top-0 z-40 bg-[#1C1C1C] text-white">
-                    <div className="flex items-center justify-center gap-4 py-3 px-4">
-                        <p className="text-sm font-medium">
+                <div className="hidden lg:block sticky top-0 z-40 pt-4 px-6">
+                    <div className="flex items-center justify-center gap-4 bg-black rounded-lg px-6 py-2">
+                        <p className="text-sm font-medium text-white">
                             Get unlimited AI outfit suggestions and weather-based recommendations!
                         </p>
                         <Button
                             size="sm"
                             variant="default"
-                            className="bg-[#222222] hover:bg-black text-white font-semibold border border-white/10"
+                            className="bg-white hover:bg-gray-100 text-gray-900 font-semibold rounded-md"
                             onClick={() => setIsProModalOpen(true)}
                         >
                             Upgrade to Pro

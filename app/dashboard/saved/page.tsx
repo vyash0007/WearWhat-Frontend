@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import Image from "next/image"
 import { Bookmark, Grid3X3, LayoutGrid, MoreHorizontal, Trash2, Share2, X } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
@@ -17,33 +18,25 @@ import { savedImagesService } from "@/lib/api/savedImages"
 import type { SavedImage } from "@/lib/api/types"
 
 export default function SavedPage() {
+    const queryClient = useQueryClient()
     const [viewMode, setViewMode] = useState<"grid" | "masonry">("grid")
-    const [savedImages, setSavedImages] = useState<SavedImage[]>([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
 
-    useEffect(() => {
-        fetchSavedImages()
-    }, [])
-
-    const fetchSavedImages = async () => {
-        try {
-            setLoading(true)
-            setError(null)
+    // Fetch saved images with React Query
+    const { data: savedImagesData, isLoading: loading, error, refetch } = useQuery({
+        queryKey: ['saved', 'images'],
+        queryFn: async () => {
             const images = await savedImagesService.getAll()
-            setSavedImages(images)
-        } catch (err: any) {
-            console.error("Error fetching saved images:", err)
-            setError(err.message || "Failed to load saved images")
-        } finally {
-            setLoading(false)
-        }
-    }
+            return images
+        },
+    })
+
+    const savedImages = savedImagesData || []
 
     const handleDelete = async (savedImageId: string) => {
         try {
             await savedImagesService.delete(savedImageId)
-            setSavedImages(prev => prev.filter(img => img.id !== savedImageId))
+            // Invalidate and refetch saved images
+            queryClient.invalidateQueries({ queryKey: ['saved'] })
         } catch (err) {
             console.error("Error deleting saved image:", err)
             alert("Failed to delete image")
@@ -68,11 +61,8 @@ export default function SavedPage() {
                 {/* Header */}
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <Bookmark className="h-6 w-6 text-primary" />
-                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">Saved Outfits</h1>
-                        </div>
-                        <p className="text-muted-foreground">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">Saved Outfits</h1>
+                        <p className="text-sm text-muted-foreground mt-2">
                             Your collection of favorite outfits and style inspirations.
                         </p>
                     </div>
@@ -113,8 +103,8 @@ export default function SavedPage() {
                             <X className="h-8 w-8 text-destructive" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">Failed to load saved outfits</h3>
-                        <p className="text-muted-foreground mt-1">{error}</p>
-                        <Button onClick={fetchSavedImages} className="mt-4">Try Again</Button>
+                        <p className="text-muted-foreground mt-1">{error instanceof Error ? error.message : "Failed to load saved outfits"}</p>
+                        <Button onClick={() => refetch()} className="mt-4">Try Again</Button>
                     </div>
                 )}
 

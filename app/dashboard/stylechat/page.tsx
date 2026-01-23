@@ -88,7 +88,7 @@ export default function StyleChatPage() {
         <div
             className="h-[calc(100vh-4rem)] lg:h-[calc(100vh-3rem)] flex flex-col overflow-hidden relative"
             style={{
-                backgroundImage: 'url(/image.png)',
+                backgroundImage: 'url(/stylechatbg.png)',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundRepeat: 'no-repeat',
