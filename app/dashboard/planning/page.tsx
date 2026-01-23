@@ -208,14 +208,14 @@ export default function PlanningPage() {
 
                             {/* Horizontal Label - Shown on mobile only */}
                             <div className="lg:hidden flex-1 min-w-0">
-                                <p className="text-xs sm:text-sm font-semibold text-primary/70 uppercase truncate">
+                                <p className="text-lg sm:text-sm font-semibold text-primary/70 uppercase truncate">
                                     {planInput}
                                 </p>
                             </div>
                         </div>
 
                         {/* The Fit Section - Loading */}
-                        <div className="lg:col-span-5">
+                        <div className="hidden lg:block lg:col-span-5">
                             <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border overflow-hidden h-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
                                 <div className="p-3 sm:p-4 border-b border-border">
                                     <h2 className="text-base sm:text-lg font-bold text-foreground text-center">THE FIT</h2>
@@ -280,14 +280,14 @@ export default function PlanningPage() {
 
                                 {/* Horizontal Label - Shown on mobile only */}
                                 <div className="lg:hidden flex-1 min-w-0">
-                                    <p className="text-xs sm:text-sm font-semibold text-primary/70 uppercase truncate">
+                                    <p className="text-lg sm:text-sm font-semibold text-primary/70 uppercase truncate">
                                         {recommendation.prompt}
                                     </p>
                                 </div>
                             </div>
 
                             {/* The Fit Section */}
-                            <div className="lg:col-span-5">
+                            <div className="hidden lg:block lg:col-span-5">
                                 <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border overflow-hidden h-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
                                     <div className="p-3 sm:p-4 border-b border-border">
                                         <h2 className="text-base sm:text-lg font-bold text-foreground text-center">THE FIT</h2>
@@ -401,7 +401,7 @@ export default function PlanningPage() {
                 {!recommendation && !loading && !error && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
                         {/* The Fit Section - Empty */}
-                        <div>
+                        <div className="hidden md:block">
                             <h2 className="text-base sm:text-lg md:text-xl font-bold text-foreground text-center mb-3 sm:mb-4">THE FIT</h2>
                             <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg sm:rounded-xl md:rounded-2xl min-h-[250px] sm:min-h-[300px] md:min-h-[350px] flex items-center justify-center bg-muted/20">
                                 <Calendar className="h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 text-muted-foreground/40" />
