@@ -48,9 +48,9 @@ export default function Page() {
       ></div>
       <div className="relative z-10">
         <Header />
-        <main className="min-h-screen w-full pt-20">
-          <div className="flex min-h-[calc(100vh-80px)] w-full relative">
-            <div className="w-1/2 flex items-center justify-start pl-8 lg:pl-12 pr-0 relative z-30">
+        <main className="min-h-screen w-full pt-16 sm:pt-20">
+          <div className="flex min-h-[calc(100vh-80px)] sm:min-h-[calc(100vh-80px)] w-full relative">
+            <div className="w-full sm:w-1/2 flex items-start sm:items-center justify-start px-6 sm:pl-8 lg:pl-12 sm:pr-0 relative z-30 pt-2 sm:pt-0">
               <HeroSection />
             </div>
             <div className="w-1/2 hidden lg:flex items-center justify-center px-8 lg:px-16 overflow-visible relative z-10">

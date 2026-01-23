@@ -52,7 +52,12 @@ export function Header() {
   ]
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${isScrolled ? "bg-white shadow-md" : "bg-transparent"
+    <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
+      isScrolled
+        ? "bg-white shadow-md" 
+        : isMobileMenuOpen
+        ? "bg-white shadow-md md:bg-transparent md:shadow-none"
+        : "bg-transparent"
       }`}>
       <div className="w-full px-8 lg:px-12 py-3">
         <nav className="flex items-center justify-between">
@@ -136,7 +141,7 @@ export function Header() {
         </nav>
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-gray-200 animate-in slide-in-from-top-2 duration-200">
+          <div className="md:hidden mt-4 pb-4 border-t border-gray-200 bg-white animate-in slide-in-from-top-2 duration-200 -mx-8 lg:-mx-12 px-8 lg:px-12">
             <div className="flex flex-col gap-2 pt-4">
               <button
                 onClick={() => setShowFeaturesDropdown(!showFeaturesDropdown)}
