@@ -142,7 +142,7 @@ export default function PlanningPage() {
             <div className="max-w-6xl mx-auto space-y-4 sm:space-y-5 md:space-y-6">
                 {/* Header */}
                 <div className="min-w-0">
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">Outfit Planner</h1>
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-lg tracking-tight text-foreground">Outfit Planner</h1>
                     <p className="text-sm text-muted-foreground mt-2">
                         Plan your outfits for the week with AI-powered suggestions based on weather.
                     </p>

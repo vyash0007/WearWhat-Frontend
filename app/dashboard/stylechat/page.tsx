@@ -104,7 +104,7 @@ export default function StyleChatPage() {
                 <div className="shrink-0 p-4 md:p-6 lg:p-8 pb-0">
                     <div className="max-w-3xl mx-auto">
                         <div className="relative">
-                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-lg tracking-tight text-foreground">
                                 Style Chat
                             </h1>
                             <p className="text-sm text-muted-foreground mt-2">Your personal AI stylist</p>

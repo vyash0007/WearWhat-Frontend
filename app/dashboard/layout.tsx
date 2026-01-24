@@ -50,15 +50,7 @@ function NavContent({ pathname, onItemClick }: { pathname: string; onItemClick?:
                                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         )}
                     >
-                        {item.label === "Styling" ? (
-                            <img
-                                src="/whitelogo.png"
-                                alt="Styling"
-                                className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 object-contain"
-                            />
-                        ) : (
-                            <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
-                        )}
+                        <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                         <span className="truncate">{item.label}</span>
                     </Link>
                 )

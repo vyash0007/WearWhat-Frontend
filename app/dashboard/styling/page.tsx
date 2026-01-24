@@ -86,14 +86,14 @@ export default function StylingPage() {
                         {/* Header */}
                         <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex-1 min-w-0">
-                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">AI Styling Results</h1>
+                                <h1 className="text-4xl md:text-5xl lg:text-6xl font-lg tracking-tight text-foreground">AI Styling Results</h1>
                                 <p className="text-sm text-muted-foreground mt-2">
                                     Here are outfit suggestions based on your selected item
                                 </p>
                             </div>
-                            <Button 
-                                variant="outline" 
-                                onClick={() => { setStep(1); setRecommendation(null); setSelectedItem(null); }} 
+                            <Button
+                                variant="outline"
+                                onClick={() => { setStep(1); setRecommendation(null); setSelectedItem(null); }}
                                 className="w-full sm:w-auto mt-2 sm:mt-0 flex-shrink-0"
                             >
                                 Try Another
@@ -156,7 +156,7 @@ export default function StylingPage() {
                 <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
                     {/* Header */}
                     <div className="min-w-0">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">AI Styling</h1>
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-lg tracking-tight text-foreground">AI Styling</h1>
                         <p className="text-sm text-muted-foreground mt-2">
                             Select an item from your wardrobe to get outfit suggestions
                         </p>

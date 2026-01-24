@@ -61,7 +61,7 @@ export default function SavedPage() {
                 {/* Header */}
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">Saved Outfits</h1>
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-lg tracking-tight text-foreground">Saved Outfits</h1>
                         <p className="text-sm text-muted-foreground mt-2">
                             Your collection of favorite outfits and style inspirations.
                         </p>

@@ -73,7 +73,7 @@ export default function CommunityPage() {
             <div className="max-w-4xl mx-auto space-y-6">
                 {/* Header */}
                 <div>
-                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-foreground">Style Community</h1>
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-lg tracking-tight text-foreground">Style Community</h1>
                     <p className="text-sm text-muted-foreground mt-2">
                         Share your favorite outfits and get inspired by others
                     </p>
