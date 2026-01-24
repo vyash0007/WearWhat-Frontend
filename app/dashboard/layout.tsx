@@ -4,6 +4,7 @@ import React from "react"
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
     LayoutGrid,
@@ -49,7 +50,15 @@ function NavContent({ pathname, onItemClick }: { pathname: string; onItemClick?:
                                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         )}
                     >
-                        <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        {item.label === "Styling" ? (
+                            <img
+                                src="/whitelogo.png"
+                                alt="Styling"
+                                className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 object-contain"
+                            />
+                        ) : (
+                            <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                        )}
                         <span className="truncate">{item.label}</span>
                     </Link>
                 )
@@ -72,10 +81,12 @@ export default function DashboardLayout({
             {/* Desktop Sidebar */}
             <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-sidebar border-r border-sidebar-border">
                 <div className="flex h-16 items-center gap-2 px-6 border-b border-sidebar-border">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sidebar-primary">
-                        <Shirt className="h-5 w-5 text-sidebar-primary-foreground" />
-                    </div>
-                    <span className="text-xl font-bold text-sidebar-foreground tracking-tight">WearWhat</span>
+                    <img
+                        src="/whitelogo.png"
+                        alt="WearWhat Logo"
+                        className="h-9 w-9 object-contain"
+                    />
+                    <span className="text-xl font-lg text-sidebar-foreground tracking-tight">WearWhat</span>
                 </div>
                 <div className="flex-1 overflow-y-auto py-4">
                     <NavContent pathname={pathname} />
@@ -92,10 +103,12 @@ export default function DashboardLayout({
             <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar border-b border-sidebar-border">
                 <div className="flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4">
                     <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-                        <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-sidebar-primary flex-shrink-0">
-                            <Shirt className="h-4 w-4 sm:h-5 sm:w-5 text-sidebar-primary-foreground" />
-                        </div>
-                        <span className="text-base sm:text-lg font-bold text-sidebar-foreground truncate">WearWhat</span>
+                        <img
+                            src="/whitelogo.png"
+                            alt="WearWhat Logo"
+                            className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0"
+                        />
+                        <span className="text-base sm:text-lg font-light text-sidebar-foreground truncate">WearWhat</span>
                     </div>
                     <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                         <SheetTrigger asChild>
@@ -105,10 +118,12 @@ export default function DashboardLayout({
                         </SheetTrigger>
                         <SheetContent side="left" className="bg-sidebar p-0 border-sidebar-border w-[85%] sm:w-[320px] max-w-sm">
                             <div className="flex h-14 sm:h-16 items-center gap-2 px-4 sm:px-6 border-b border-sidebar-border">
-                                <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl bg-sidebar-primary flex-shrink-0">
-                                    <Shirt className="h-4 w-4 sm:h-5 sm:w-5 text-sidebar-primary-foreground" />
-                                </div>
-                                <span className="text-lg sm:text-xl font-bold text-sidebar-foreground truncate">WearWhat</span>
+                                <img
+                                    src="/whitelogo.png"
+                                    alt="WearWhat Logo"
+                                    className="h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0"
+                                />
+                                <span className="text-lg sm:text-xl font-light text-sidebar-foreground truncate">WearWhat</span>
                             </div>
                             <div className="overflow-y-auto h-[calc(100vh-56px)] sm:h-[calc(100vh-64px)]">
                                 <NavContent pathname={pathname} onItemClick={() => setMobileOpen(false)} />

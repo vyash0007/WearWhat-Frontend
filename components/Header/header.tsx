@@ -52,10 +52,9 @@ export function Header() {
   ]
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
-      isScrolled
-        ? "bg-white shadow-md" 
-        : isMobileMenuOpen
+    <header className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${isScrolled
+      ? "bg-white shadow-md"
+      : isMobileMenuOpen
         ? "bg-white shadow-md md:bg-transparent md:shadow-none"
         : "bg-transparent"
       }`}>
@@ -64,14 +63,14 @@ export function Header() {
           <div className="flex items-center gap-4 sm:gap-8 lg:gap-12">
             {/* Logo */}
             <a href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-200">
-              {/* <Image 
-                src="/logo1.png" 
-                alt="WearWhat Logo" 
-                width={20} 
-                height={820} 
-                className="object-contain h-20 w-20"
-              /> */}
-              <span className="text-xl sm:text-2xl font-semibold tracking-wide text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>
+              <Image
+                src="/blacklogo.png"
+                alt="WearWhat Logo"
+                width={20}
+                height={20}
+                className="object-contain h-10 w-10"
+              />
+              <span className="text-xl sm:text-2xl font-lg tracking-wide text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>
                 WearWhat
               </span>
             </a>
