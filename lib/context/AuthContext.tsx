@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authService } from '@/lib/api/auth';
 import type { User, LoginRequest, SignupRequest } from '@/lib/api/types';
 
@@ -20,6 +21,7 @@ const USER_STORAGE_KEY = 'wearwhat_user';
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -72,7 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
     localStorage.removeItem(USER_STORAGE_KEY);
-  }, []);
+    // Clear all React Query cache to prevent stale data on next login
+    queryClient.clear();
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider

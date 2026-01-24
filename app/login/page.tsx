@@ -43,7 +43,7 @@ export default function LoginPage() {
           <div className="bg-white rounded-lg shadow-lg p-8">
             {/* Logo */}
             <div className="flex items-center mb-6">
-              <span className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-poppins)' }}>WearWhat</span>
+              <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors" style={{ fontFamily: 'var(--font-poppins)' }}>WearWhat</Link>
             </div>
 
             {/* Heading */}

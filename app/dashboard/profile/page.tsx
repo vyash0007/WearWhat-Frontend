@@ -16,8 +16,8 @@ import {
 import { cn } from "@/lib/utils"
 import { userService } from "@/lib/api/user"
 import { postsService } from "@/lib/api/posts"
-import { authService } from "@/lib/api/auth"
 import { savedImagesService } from "@/lib/api/savedImages"
+import { useAuth } from "@/lib/context"
 import type { UserProfile } from "@/lib/api/user"
 import type { Post } from "@/lib/api/posts"
 import { useRouter } from "next/navigation"
@@ -27,6 +27,7 @@ import UpgradeToProModal from "@/components/dashboard/UpgradeToProModal"
 
 export default function ProfilePage() {
     const router = useRouter()
+    const { logout } = useAuth()
     const [activeTab, setActiveTab] = useState<"posts" | "saved">("posts")
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
     const [userPosts, setUserPosts] = useState<Post[]>([])
@@ -82,7 +83,7 @@ export default function ProfilePage() {
 
     const handleLogout = async () => {
         try {
-            await authService.logout()
+            await logout()
             router.push("/login")
         } catch (err) {
             console.error("Error logging out:", err)
