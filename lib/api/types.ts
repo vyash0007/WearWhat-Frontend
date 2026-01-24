@@ -71,9 +71,8 @@ export interface WardrobeItem {
 
 export interface WardrobeUploadResponse {
   success: boolean;
-  count: number;
   user_id: string;
-  items: WardrobeItem[];
+  item: WardrobeItem;
 }
 
 export interface WardrobeListResponse {

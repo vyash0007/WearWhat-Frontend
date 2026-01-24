@@ -44,7 +44,9 @@ function NavContent({ pathname, onItemClick }: { pathname: string; onItemClick?:
                         onClick={onItemClick}
                         className={cn(
                             "flex items-center gap-2.5 sm:gap-3 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium transition-all duration-200",
-
+                            isActive
+                                ? "bg-white text-black shadow-lg"
+                                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         )}
                     >
                         <item.icon className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
