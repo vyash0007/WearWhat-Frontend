@@ -123,12 +123,12 @@ export default function SavedPage() {
                             >
                                 {/* Image */}
                                 <div className="relative p-3">
-                                    <div className="relative aspect-square rounded-xl overflow-hidden bg-muted/50">
+                                    <div className="relative aspect-square rounded-xl overflow-hidden bg-white">
                                         <Image
                                             src={savedImage.image_url || '/placeholder.png'}
                                             alt="Saved outfit"
                                             fill
-                                            className="object-cover"
+                                            className="object-contain p-2"
                                         />
                                     </div>
 

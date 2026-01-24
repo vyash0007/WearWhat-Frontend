@@ -5,6 +5,7 @@ import React from "react"
 import { useState, useRef, useEffect } from "react"
 import { Send, Mic, User, Loader2 } from "lucide-react"
 import Image from "next/image"
+import ReactMarkdown from "react-markdown"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -146,7 +147,13 @@ export default function StyleChatPage() {
                                             : "bg-primary text-primary-foreground"
                                     )}
                                 >
-                                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                                    {message.role === "assistant" ? (
+                                        <div className="text-sm markdown-content">
+                                            <ReactMarkdown>{message.content}</ReactMarkdown>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                                    )}
                                 </div>
                             </div>
                         ))}

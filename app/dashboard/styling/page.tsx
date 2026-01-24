@@ -20,7 +20,7 @@ const categoryLabels: Record<string, string> = {
     bottomWear: "Bottom Wear",
     outerWear: "Outer Wear",
     footwear: "Footwear",
-    otherItems: "Other Items",
+    otherItems: "Accessories",
 }
 
 export default function StylingPage() {
@@ -239,12 +239,12 @@ export default function StylingPage() {
                                             : "border-border hover:-translate-y-1"
                                     )}
                                 >
-                                    <div className="relative aspect-square bg-muted/50">
+                                    <div className="relative aspect-square bg-white">
                                         <Image
                                             src={item.image_url}
                                             alt={item.category}
                                             fill
-                                            className="object-cover"
+                                            className="object-contain p-2"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 

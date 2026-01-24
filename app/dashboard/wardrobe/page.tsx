@@ -27,14 +27,14 @@ import { CATEGORY_GROUPS, ATTRIBUTE_LABELS } from "@/lib/api/types"
 import { useRouter } from "next/navigation"
 import NewOutfitModal from "@/components/dashboard/NewOutfitModal"
 
-const categories = ["All", "Upper Wear", "Bottom Wear", "Outer Wear", "Footwear", "Other Items"]
+const categories = ["All", "Upper Wear", "Bottom Wear", "Outer Wear", "Footwear", "Accessories"]
 
 const categoryGroupMap: Record<string, string> = {
     "Upper Wear": "upperWear",
     "Bottom Wear": "bottomWear",
     "Outer Wear": "outerWear",
     "Footwear": "footwear",
-    "Other Items": "otherItems",
+    "Accessories": "otherItems",
 }
 
 export default function WardrobePage() {
@@ -88,7 +88,7 @@ export default function WardrobePage() {
             bottomWear: "Bottom Wear",
             outerWear: "Outer Wear",
             footwear: "Footwear",
-            otherItems: "Other Items",
+            otherItems: "Accessories",
         }
         return mapping[categoryGroup] || categoryGroup
     }
@@ -205,14 +205,14 @@ export default function WardrobePage() {
                                 )}
                             >
                                 <div className={cn(
-                                    "relative aspect-square bg-muted/50",
+                                    "relative aspect-square bg-white",
                                     viewMode === "list" && "w-24 h-24 aspect-auto flex-shrink-0"
                                 )}>
                                     <Image
                                         src={item.image_url}
                                         alt={item.category}
                                         fill
-                                        className="object-cover"
+                                        className="object-contain p-2"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 

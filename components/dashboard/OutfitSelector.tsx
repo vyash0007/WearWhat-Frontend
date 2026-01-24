@@ -130,7 +130,7 @@ export default function OutfitSelector({
                 <img
                   src={selectedItem.image_url}
                   alt={selectedItem.category}
-                  className="h-full w-full object-contain bg-white dark:bg-gray-700"
+                  className="h-full w-full object-contain bg-white"
                 />
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <X className="h-4 w-4 text-white" />
@@ -185,7 +185,7 @@ export default function OutfitSelector({
                   <img
                     src={item.image_url}
                     alt={item.category}
-                    className="h-full w-full object-contain bg-white dark:bg-gray-800 p-2"
+                    className="h-full w-full object-contain bg-white p-1"
                   />
 
                   {/* Selection indicator */}
