@@ -1,91 +1,67 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect, ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { authService } from '@/lib/api/auth';
-import type { User, LoginRequest, SignupRequest } from '@/lib/api/types';
+import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs';
+import { setTokenGetter } from '@/lib/api/client';
+import type { User } from '@/lib/api/types';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (credentials: LoginRequest) => Promise<{ success: boolean; message?: string }>;
-  signup: (userData: SignupRequest) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const USER_STORAGE_KEY = 'wearwhat_user';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
+  const { signOut, getToken, isLoaded: isAuthLoaded } = useClerkAuth();
   const queryClient = useQueryClient();
 
-  // Load user from localStorage on mount
+  const isLoading = !isUserLoaded || !isAuthLoaded;
+
+  // Set up token getter for API client using Clerk's getToken
   useEffect(() => {
-    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
-    if (storedUser) {
+    setTokenGetter(async () => {
       try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem(USER_STORAGE_KEY);
+        const token = await getToken();
+        return token;
+      } catch (error) {
+        console.error('Error getting token:', error);
+        return null;
       }
-    }
-    setIsLoading(false);
-  }, []);
+    });
+  }, [getToken]);
 
-  const login = useCallback(async (credentials: LoginRequest) => {
-    try {
-      const response = await authService.login(credentials);
-      if (response.success && response.user) {
-        setUser(response.user);
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
-        return { success: true };
+  // Convert Clerk user to our User type
+  const user: User | null = clerkUser
+    ? {
+        id: clerkUser.id,
+        email: clerkUser.primaryEmailAddress?.emailAddress || '',
+        first_name: clerkUser.firstName || '',
+        last_name: clerkUser.lastName || '',
       }
-      return { success: false, message: response.message || 'Login failed' };
+    : null;
+
+  const logout = async () => {
+    try {
+      await signOut();
+      // Clear all React Query cache to prevent stale data on next login
+      queryClient.clear();
     } catch (error) {
-      const message = (error as { message?: string }).message || 'Login failed';
-      return { success: false, message };
+      console.error('Error logging out:', error);
+      throw error;
     }
-  }, []);
-
-  const signup = useCallback(async (userData: SignupRequest) => {
-    try {
-      const response = await authService.signup(userData);
-      if (response.success && response.user) {
-        setUser(response.user);
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
-        return { success: true };
-      }
-      return { success: false, message: response.message || 'Signup failed' };
-    } catch (error) {
-      const message = (error as { message?: string }).message || 'Signup failed';
-      return { success: false, message };
-    }
-  }, []);
-
-  const logout = useCallback(async () => {
-    try {
-      await authService.logout();
-    } catch {
-      // Continue with local logout even if API call fails
-    }
-    setUser(null);
-    localStorage.removeItem(USER_STORAGE_KEY);
-    // Clear all React Query cache to prevent stale data on next login
-    queryClient.clear();
-  }, [queryClient]);
+  };
 
   return (
     <AuthContext.Provider
       value={{
         user,
         isLoading,
-        isAuthenticated: !!user,
-        login,
-        signup,
+        isAuthenticated: !!clerkUser,
         logout,
       }}
     >

@@ -17,6 +17,13 @@ export interface ApiError {
   status: number;
 }
 
+// Function to get Clerk token - will be set by Clerk auth context
+let getToken: (() => Promise<string | null>) | null = null;
+
+export function setTokenGetter(tokenGetter: () => Promise<string | null>) {
+  getToken = tokenGetter;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -30,13 +37,26 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
+    // Get Clerk JWT token if available
+    let authToken: string | null = null;
+    if (getToken) {
+      authToken = await getToken();
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    };
+
+    // Add Clerk JWT token to headers if available
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
+    }
+
     const config: RequestInit = {
       ...options,
-      credentials: 'include', // Important: includes cookies for JWT auth
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      credentials: 'include',
+      headers,
     };
 
     // Don't set Content-Type for FormData (browser sets it with boundary)

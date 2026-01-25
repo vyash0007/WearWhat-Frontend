@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation"
 import { PostCard } from "@/components/social/PostCard"
 import { PostDetail } from "@/components/social/PostDetail"
 import UpgradeToProModal from "@/components/dashboard/UpgradeToProModal"
+import ProfileImageCropModal from "@/components/dashboard/ProfileImageCropModal"
 
 export default function ProfilePage() {
     const router = useRouter()
@@ -42,6 +43,7 @@ export default function ProfilePage() {
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
     const [isUploadingImage, setIsUploadingImage] = useState(false)
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
+    const [selectedImageForCrop, setSelectedImageForCrop] = useState<File | null>(null)
 
     useEffect(() => {
         fetchProfileData()
@@ -84,11 +86,11 @@ export default function ProfilePage() {
     const handleLogout = async () => {
         try {
             await logout()
-            router.push("/login")
+            router.push("/")
         } catch (err) {
             console.error("Error logging out:", err)
-            // Still redirect to login even if logout fails
-            router.push("/login")
+            // Still redirect to homepage even if logout fails
+            router.push("/")
         }
     }
 
@@ -140,14 +142,21 @@ export default function ProfilePage() {
         }
     }
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
+        // Open crop modal with selected file
+        setSelectedImageForCrop(file)
+        // Reset input so same file can be selected again
+        e.target.value = ""
+    }
 
+    const handleCroppedImageUpload = async (croppedFile: File) => {
         try {
             setIsUploadingImage(true)
-            const response = await userService.uploadProfileImage(file)
+            const response = await userService.uploadProfileImage(croppedFile)
             setUserProfile(response.user)
+            setSelectedImageForCrop(null)
         } catch (err) {
             console.error("Error uploading image:", err)
             alert("Failed to upload profile image")
@@ -204,7 +213,7 @@ export default function ProfilePage() {
                                     type="file"
                                     accept="image/*"
                                     className="hidden"
-                                    onChange={handleImageUpload}
+                                    onChange={handleImageSelect}
                                     disabled={isUploadingImage}
                                 />
                             </label>
@@ -407,6 +416,16 @@ export default function ProfilePage() {
                 isOpen={isUpgradeModalOpen}
                 onClose={() => setIsUpgradeModalOpen(false)}
             />
+
+            {/* Profile Image Crop Modal */}
+            {selectedImageForCrop && (
+                <ProfileImageCropModal
+                    imageFile={selectedImageForCrop}
+                    onClose={() => setSelectedImageForCrop(null)}
+                    onCropComplete={handleCroppedImageUpload}
+                    isUploading={isUploadingImage}
+                />
+            )}
         </div>
     )
 }

@@ -12,7 +12,7 @@ export const wardrobeService = {
    */
   async uploadImage(file: File): Promise<WardrobeUploadResponse> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('files', file);
 
     return apiClient.post<WardrobeUploadResponse>('/wardrobe/upload', formData);
   },
