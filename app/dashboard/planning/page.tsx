@@ -110,6 +110,15 @@ export default function PlanningPage() {
                     combined_image_url: outfit.combined_image_url,
                     items: outfit.items || [],
                 })
+                // Set weather from saved outfit if available
+                if (outfit.temperature !== undefined || outfit.weather) {
+                    setWeather({
+                        current: {
+                            temp: outfit.temperature ?? 0,
+                            condition: outfit.weather || '',
+                        },
+                    } as WeatherData)
+                }
             } else {
                 console.log('ℹ️ No outfit found for this date')
                 setRecommendation(null)
@@ -164,6 +173,7 @@ export default function PlanningPage() {
                 combined_image_url: recommendation.combined_image_url,
                 prompt: recommendation.prompt,
                 temperature: weather?.current?.temp ? Math.round(weather.current.temp) : undefined,
+                weather: weather?.current?.condition || undefined,
                 selected_categories: recommendation.selected_categories,
                 items: recommendation.items,
             })
