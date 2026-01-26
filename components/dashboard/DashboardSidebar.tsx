@@ -2,12 +2,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { FiGrid, FiScissors, FiCalendar, FiUsers, FiMessageCircle, FiBookmark, FiUser } from "react-icons/fi";
+import { FiGrid, FiScissors, FiCalendar, FiUsers, FiMessageCircle, FiBookmark, FiUser, FiZap } from "react-icons/fi";
 import { IconType } from "react-icons";
 import { cn } from "@/lib/utils";
 
 const sidebarLinks: { name: string; href: string; icon: IconType }[] = [
     { name: "Wardrobe", href: "/dashboard/wardrobe", icon: FiGrid },
+    { name: "Studio", href: "/dashboard/studio", icon: FiZap },
     { name: "Styling", href: "/dashboard/styling", icon: FiScissors },
     { name: "Planning", href: "/dashboard/planning", icon: FiCalendar },
     { name: "Community", href: "/dashboard/community", icon: FiUsers },

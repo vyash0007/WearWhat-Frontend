@@ -62,9 +62,11 @@ const SheetContent = React.forwardRef<
             className={cn(sheetVariants({ side }), className)}
             {...props}
         >
+            <SheetPrimitive.Title className="sr-only">Menu</SheetPrimitive.Title>
+            <SheetPrimitive.Description className="sr-only">Navigation menu</SheetPrimitive.Description>
             {children}
-            <SheetPrimitive.Close className="absolute right-3 sm:right-4 top-3 sm:top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary z-10">
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
+            <SheetPrimitive.Close className="absolute right-3 sm:right-4 top-3 sm:top-4 opacity-70 hover:opacity-100 transition-opacity focus:outline-none disabled:pointer-events-none z-10">
+                <X className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 <span className="sr-only">Close</span>
             </SheetPrimitive.Close>
         </SheetPrimitive.Content>

@@ -19,13 +19,57 @@ export interface StyleRecommendationResponse {
   total_items: number;
 }
 
+// Weather data types
+export interface WeatherLocation {
+  city: string;
+  country: string;
+  lat?: number;
+  lon?: number;
+}
+
+export interface WeatherCurrent {
+  temp: number;
+  feels_like: number;
+  humidity: number;
+  condition: string;
+  description: string;
+  icon: string;
+}
+
+export interface WeatherForecast {
+  avg_temp: number;
+  min_temp: number;
+  max_temp: number;
+  dominant_condition: string;
+}
+
+export interface WeatherData {
+  success: boolean;
+  date?: string;
+  location: WeatherLocation;
+  current: WeatherCurrent;
+  forecast: WeatherForecast;
+  suggestion: string;
+}
+
+// Request params for prompt-based recommendation
+export interface RecommendationRequest {
+  prompt: string;
+  lat?: number;
+  lon?: number;
+  city?: string;
+  date?: string;
+}
+
 // Response for prompt-based recommendation (used in planning)
 export interface StylingRecommendationResponse {
   success: boolean;
   prompt: string;
+  reasoning?: string;
   selected_categories: string[];
   combined_image_url: string;
   items: WardrobeItem[];
+  weather?: WeatherData;
 }
 
 export const stylingService = {
@@ -37,9 +81,9 @@ export const stylingService = {
   },
 
   /**
-   * Get outfit recommendation based on a text prompt (used in planning)
+   * Get outfit recommendation based on a text prompt with optional location and date (used in planning)
    */
-  getRecommendation: async (prompt: string): Promise<StylingRecommendationResponse> => {
-    return apiClient.post<StylingRecommendationResponse>('/recommendation', { prompt });
+  getRecommendation: async (params: RecommendationRequest): Promise<StylingRecommendationResponse> => {
+    return apiClient.post<StylingRecommendationResponse>('/recommendation', params);
   },
 };

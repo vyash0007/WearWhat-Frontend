@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import Image from "next/image"
-import { Send, Trash2, RefreshCw, Share2, Save, CloudRain, X, Calendar, Check } from "lucide-react"
+import { Send, Trash2, RefreshCw, Share2, Save, CloudRain, Sun, Cloud, CloudSnow, CloudLightning, X, Calendar, Check } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,16 +11,34 @@ import { cn } from "@/lib/utils"
 import { stylingService } from "@/lib/api/styling"
 import { calendarOutfitsService } from "@/lib/api/calendarOutfits"
 import PostOutfitModal from "@/components/dashboard/PostOutfitModal"
-import type { StylingRecommendationResponse } from "@/lib/api/styling"
+import type { StylingRecommendationResponse, WeatherData } from "@/lib/api/styling"
 import type { CalendarOutfit } from "@/lib/api/calendarOutfits"
 
-const days = [
-    { day: "Wed", date: "Jan 21", dateStr: "2026-01-21" },
-    { day: "Thu", date: "Jan 22", dateStr: "2026-01-22" },
-    { day: "Today", date: "Jan 23", dateStr: "2026-01-23" },
-    { day: "Sat", date: "Jan 24", dateStr: "2026-01-24" },
-    { day: "Sun", date: "Jan 25", dateStr: "2026-01-25" },
-]
+// User location state
+interface UserLocation {
+    lat: number;
+    lon: number;
+}
+
+// Generate dynamic days array based on current date
+const generateDays = () => {
+    const today = new Date()
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    return Array.from({ length: 5 }, (_, i) => {
+        const date = new Date(today)
+        date.setDate(today.getDate() + i - 2) // -2 to start 2 days before today
+
+        const dayOfWeek = i === 2 ? 'Today' : dayNames[date.getDay()]
+        const monthDay = `${monthNames[date.getMonth()]} ${date.getDate()}`
+        const dateStr = date.toISOString().split('T')[0] // YYYY-MM-DD format
+
+        return { day: dayOfWeek, date: monthDay, dateStr }
+    })
+}
+
+const days = generateDays()
 
 export default function PlanningPage() {
     const queryClient = useQueryClient()
@@ -32,6 +50,26 @@ export default function PlanningPage() {
     const [error, setError] = useState<string | null>(null)
     const [isPostModalOpen, setIsPostModalOpen] = useState(false)
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+    const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
+    const [weather, setWeather] = useState<WeatherData | null>(null)
+
+    // Get user's location on mount
+    useEffect(() => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    setUserLocation({
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude,
+                    })
+                },
+                (err) => {
+                    console.log("Geolocation error:", err.message)
+                    // Fallback - continue without location
+                }
+            )
+        }
+    }, [])
 
     // Show toast notification
     const showToast = (message: string, type: 'success' | 'error') => {
@@ -39,8 +77,21 @@ export default function PlanningPage() {
         setTimeout(() => setToast(null), 3000)
     }
 
+    // Get weather icon based on condition
+    const getWeatherIcon = (condition?: string) => {
+        if (!condition) return CloudRain
+        const c = condition.toLowerCase()
+        if (c.includes('clear') || c.includes('sun')) return Sun
+        if (c.includes('cloud')) return Cloud
+        if (c.includes('rain') || c.includes('drizzle')) return CloudRain
+        if (c.includes('snow')) return CloudSnow
+        if (c.includes('thunder') || c.includes('storm')) return CloudLightning
+        return Cloud
+    }
+
     // Load saved outfit for selected day
     useEffect(() => {
+        setWeather(null) // Clear weather when day changes
         loadOutfitForDay(days[selectedDay].dateStr)
     }, [selectedDay])
 
@@ -83,8 +134,19 @@ export default function PlanningPage() {
         try {
             setLoading(true)
             setError(null)
-            const result = await stylingService.getRecommendation(planInput.trim())
+            setWeather(null)
+
+            const result = await stylingService.getRecommendation({
+                prompt: planInput.trim(),
+                lat: userLocation?.lat,
+                lon: userLocation?.lon,
+                date: days[selectedDay].dateStr,
+            })
+
             setRecommendation(result)
+            if (result.weather) {
+                setWeather(result.weather)
+            }
         } catch (err: any) {
             console.error("Error getting recommendation:", err)
             setError(err.message || "Failed to get recommendation")
@@ -101,7 +163,7 @@ export default function PlanningPage() {
                 outfit_date: days[selectedDay].dateStr,
                 combined_image_url: recommendation.combined_image_url,
                 prompt: recommendation.prompt,
-                temperature: 22,
+                temperature: weather?.current?.temp ? Math.round(weather.current.temp) : undefined,
                 selected_categories: recommendation.selected_categories,
                 items: recommendation.items,
             })
@@ -131,6 +193,7 @@ export default function PlanningPage() {
     const handleTryAnother = () => {
         setRecommendation(null)
         setPlanInput("")
+        setWeather(null)
     }
 
     // Split items into "THE FIT" (first 5) and "THE INSPO" (rest or combined image)
@@ -201,11 +264,10 @@ export default function PlanningPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 md:gap-6">
                         {/* Left Column - Weather & Label */}
                         <div className="lg:col-span-1 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-3 sm:gap-4">
-                            {/* Weather Widget */}
+                            {/* Weather Widget - Loading */}
                             <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border p-3 sm:p-4 flex flex-col items-center flex-shrink-0">
-                                <CloudRain className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-muted-foreground mb-1 sm:mb-2" />
-                                <span className="text-xl sm:text-2xl md:text-2xl font-bold text-foreground">22°</span>
-                                <span className="text-[10px] xs:text-xs text-muted-foreground">{days[selectedDay].date}</span>
+                                <ShirtLoader size="sm" />
+                                <span className="text-[10px] xs:text-xs text-muted-foreground mt-2">{days[selectedDay].date}</span>
                             </div>
 
                             {/* Vertical Label - Hidden on mobile, shown on desktop */}
@@ -274,11 +336,18 @@ export default function PlanningPage() {
                             {/* Left Column - Weather & Label */}
                             <div className="lg:col-span-1 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-3 sm:gap-4">
                                 {/* Weather Widget */}
-                                <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border p-3 sm:p-4 flex flex-col items-center flex-shrink-0">
-                                    <CloudRain className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-muted-foreground mb-1 sm:mb-2" />
-                                    <span className="text-xl sm:text-2xl md:text-2xl font-bold text-foreground">22°</span>
-                                    <span className="text-[10px] xs:text-xs text-muted-foreground">{days[selectedDay].date}</span>
-                                </div>
+                                {(() => {
+                                    const WeatherIcon = getWeatherIcon(weather?.current?.condition)
+                                    return (
+                                        <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border p-3 sm:p-4 flex flex-col items-center flex-shrink-0">
+                                            <WeatherIcon className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 text-muted-foreground mb-1 sm:mb-2" />
+                                            <span className="text-xl sm:text-2xl md:text-2xl font-bold text-foreground">
+                                                {weather?.current?.temp ? `${Math.round(weather.current.temp)}°` : '--°'}
+                                            </span>
+                                            <span className="text-[10px] xs:text-xs text-muted-foreground">{days[selectedDay].date}</span>
+                                        </div>
+                                    )
+                                })()}
 
                                 {/* Vertical Label - Hidden on mobile, shown on desktop */}
                                 <div className="hidden lg:flex items-center justify-center flex-1 min-h-[400px]">

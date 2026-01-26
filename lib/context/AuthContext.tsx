@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setTokenGetter(async () => {
       try {
-        const token = await getToken();
+        const token = await getToken({ template: "test" });
         return token;
       } catch (error) {
         console.error('Error getting token:', error);

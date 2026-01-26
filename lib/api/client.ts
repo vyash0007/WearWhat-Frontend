@@ -41,6 +41,7 @@ class ApiClient {
     let authToken: string | null = null;
     if (getToken) {
       authToken = await getToken();
+      console.log('JWT Token:', authToken);
     }
 
     const headers: Record<string, string> = {

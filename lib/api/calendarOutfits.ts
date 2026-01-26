@@ -27,7 +27,7 @@ export interface SaveCalendarOutfitRequest {
   outfit_date: string;
   combined_image_url: string;
   prompt: string;
-  temperature: number;
+  temperature?: number;
   selected_categories: string[];
   items: WardrobeItem[];
 }

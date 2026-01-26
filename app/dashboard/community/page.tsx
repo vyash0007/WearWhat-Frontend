@@ -19,7 +19,6 @@ const filters = [
 
 export default function CommunityPage() {
     const [selectedFilter, setSelectedFilter] = useState("For You")
-    const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set())
     const [selectedPost, setSelectedPost] = useState<Post | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const queryClient = useQueryClient()
@@ -29,7 +28,12 @@ export default function CommunityPage() {
         queryKey: ['posts', 'feed'],
         queryFn: async () => {
             const response = await postsService.getFeed(20, 0)
-            return response?.posts || []
+            console.log("Feed posts response:", response)
+            const posts = response?.posts || []
+            posts.forEach((post: Post) => {
+                console.log(`Post ${post.id}: likes_count=${post.likes_count}, is_liked=${post.is_liked}, is_saved=${post.is_saved}`)
+            })
+            return posts
         },
     })
 
@@ -37,23 +41,25 @@ export default function CommunityPage() {
 
     const toggleLike = async (postId: string) => {
         try {
-            await postsService.like(postId)
+            const response = await postsService.like(postId)
+            console.log(`Like response for post ${postId}:`, response)
 
-            // Update local state
-            setLikedPosts(prev => {
-                const newSet = new Set(prev)
-                if (newSet.has(postId)) {
-                    newSet.delete(postId)
-                } else {
-                    newSet.add(postId)
-                }
-                return newSet
-            })
-
-            // Invalidate and refetch posts
+            // Invalidate and refetch posts to get updated is_liked status
             queryClient.invalidateQueries({ queryKey: ['posts'] })
         } catch (err) {
             console.error("Error liking post:", err)
+        }
+    }
+
+    const toggleSave = async (postId: string) => {
+        try {
+            const response = await postsService.save(postId)
+            console.log(`Save response for post ${postId}:`, response)
+
+            // Invalidate and refetch posts to get updated is_saved status
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
+        } catch (err) {
+            console.error("Error saving post:", err)
         }
     }
 
@@ -104,7 +110,9 @@ export default function CommunityPage() {
                     isOpen={isDetailOpen}
                     onClose={() => setIsDetailOpen(false)}
                     onLike={toggleLike}
-                    isLiked={selectedPost ? likedPosts.has(selectedPost.id) : false}
+                    onSave={toggleSave}
+                    isLiked={selectedPost?.is_liked ?? false}
+                    isSaved={selectedPost?.is_saved ?? false}
                 />
 
                 {/* Loading State */}
@@ -146,7 +154,9 @@ export default function CommunityPage() {
                                 key={post.id}
                                 post={post}
                                 onLike={toggleLike}
-                                isLiked={likedPosts.has(post.id)}
+                                onSave={toggleSave}
+                                isLiked={post.is_liked}
+                                isSaved={post.is_saved}
                                 onCommentClick={(p) => {
                                     setSelectedPost(p)
                                     setIsDetailOpen(true)

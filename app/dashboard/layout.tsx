@@ -6,6 +6,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import {
     LayoutGrid,
     Scissors,
@@ -17,14 +18,18 @@ import {
     Menu,
     X,
     Shirt,
+    Zap,
+    Coins,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { studioService } from "@/lib/api/studio"
 import UpgradeToProModal from "@/components/dashboard/UpgradeToProModal"
 
 const navItems = [
     { href: "/dashboard/wardrobe", label: "Wardrobe", icon: LayoutGrid },
+    { href: "/dashboard/studio", label: "Studio", icon: Zap },
     { href: "/dashboard/styling", label: "Styling", icon: Scissors },
     { href: "/dashboard/planning", label: "Planning", icon: Calendar },
     { href: "/dashboard/community", label: "Community", icon: Users },
@@ -66,7 +71,17 @@ export default function DashboardLayout({
 }) {
     const pathname = usePathname()
     const [mobileOpen, setMobileOpen] = useState(false)
-    const [isProModalOpen, setIsProModalOpen] = useState(false)
+    const [isTokenModalOpen, setIsTokenModalOpen] = useState(false)
+
+    // Fetch token balance
+    const { data: tokensData } = useQuery({
+        queryKey: ['studio', 'tokens'],
+        queryFn: async () => {
+            const response = await studioService.getTokens()
+            return response?.tokens ?? 0
+        },
+    })
+    const tokens = tokensData ?? 0
 
     return (
         <div className="flex min-h-screen bg-background dashboard-theme text-foreground">
@@ -84,10 +99,15 @@ export default function DashboardLayout({
                     <NavContent pathname={pathname} />
                 </div>
                 <div className="p-4 border-t border-sidebar-border">
-                    <div className="rounded-xl bg-sidebar-accent/50 p-4">
-                        <p className="text-xs text-sidebar-foreground/60 mb-2">Upgrade to Pro</p>
-                        <p className="text-sm text-sidebar-foreground font-medium">Unlimited AI styling</p>
-                    </div>
+                    <Link href="/dashboard/studio">
+                        <div className="rounded-xl bg-sidebar-accent/50 p-4 hover:bg-sidebar-accent transition-colors cursor-pointer">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Coins className="h-4 w-4 text-yellow-500" />
+                                <p className="text-xs text-sidebar-foreground/60">Studio Tokens</p>
+                            </div>
+                            <p className="text-sm text-sidebar-foreground font-medium">{tokens} tokens available</p>
+                        </div>
+                    </Link>
                 </div>
             </aside>
 
@@ -127,19 +147,19 @@ export default function DashboardLayout({
 
             {/* Main Content */}
             <main className="flex-1 lg:ml-64">
-                {/* Pro Banner */}
+                {/* Tokens Banner */}
                 <div className="hidden lg:block sticky top-0 z-40 pt-4 px-6">
                     <div className="flex items-center justify-center gap-4 bg-black rounded-lg px-6 py-2">
                         <p className="text-sm font-medium text-white">
-                            Get unlimited AI outfit suggestions and weather-based recommendations!
+                            You have <span className="text-yellow-400 font-bold">{tokens}</span> studio tokens remaining
                         </p>
                         <Button
                             size="sm"
                             variant="default"
                             className="bg-white hover:bg-gray-100 text-gray-900 font-semibold rounded-md"
-                            onClick={() => setIsProModalOpen(true)}
+                            onClick={() => setIsTokenModalOpen(true)}
                         >
-                            Upgrade to Pro
+                            Get More Tokens
                         </Button>
                     </div>
                 </div>
@@ -150,8 +170,8 @@ export default function DashboardLayout({
             </main>
 
             <UpgradeToProModal
-                isOpen={isProModalOpen}
-                onClose={() => setIsProModalOpen(false)}
+                isOpen={isTokenModalOpen}
+                onClose={() => setIsTokenModalOpen(false)}
             />
         </div>
     )
