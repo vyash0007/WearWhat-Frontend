@@ -11,7 +11,8 @@ export interface CalendarOutfit {
   outfit_date: string;
   combined_image_url: string;
   prompt: string;
-  temperature: number;
+  temperature?: number;
+  weather?: string;
   selected_categories: string[];
   items: WardrobeItem[];
   created_at: string;
@@ -27,7 +28,8 @@ export interface SaveCalendarOutfitRequest {
   outfit_date: string;
   combined_image_url: string;
   prompt: string;
-  temperature: number;
+  temperature?: number;
+  weather?: string;
   selected_categories: string[];
   items: WardrobeItem[];
 }

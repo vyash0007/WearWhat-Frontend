@@ -13,6 +13,10 @@ export interface Post {
   text?: string;
   likes_count: number;
   comments_count: number;
+  liked_by_user_ids: string[];
+  is_liked: boolean;
+  saved_by_user_ids: string[];
+  is_saved: boolean;
   created_at: string;
 }
 
@@ -43,7 +47,15 @@ export interface GetPostsResponse {
 
 export interface LikePostResponse {
   success: boolean;
+  liked: boolean;
   likes_count: number;
+  message?: string;
+}
+
+export interface SavePostResponse {
+  success: boolean;
+  saved: boolean;
+  message?: string;
 }
 
 export interface GetCommentsResponse {
@@ -100,6 +112,20 @@ export const postsService = {
    */
   async like(postId: string): Promise<LikePostResponse> {
     return apiClient.post<LikePostResponse>(`/posts/${postId}/like`);
+  },
+
+  /**
+   * Save a post
+   */
+  async save(postId: string): Promise<SavePostResponse> {
+    return apiClient.post<SavePostResponse>(`/posts/${postId}/save`);
+  },
+
+  /**
+   * Get posts saved by current user
+   */
+  async getSavedPosts(limit = 20, offset = 0): Promise<GetPostsResponse> {
+    return apiClient.get<GetPostsResponse>(`/posts/saved?limit=${limit}&offset=${offset}`);
   },
 
   /**

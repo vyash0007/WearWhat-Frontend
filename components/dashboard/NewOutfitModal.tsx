@@ -55,7 +55,24 @@ export default function NewOutfitModal({ open, onClose, onSuccess }: { open: boo
         setUploadError("Failed to upload image. Please try again.");
       }
     } catch (err: any) {
-      setUploadError(err.message || "Failed to upload image. Please try again.");
+      // Handle different error formats (string, object with message, or Pydantic validation error)
+      let errorMessage = "Failed to upload image. Please try again.";
+      if (typeof err === "string") {
+        errorMessage = err;
+      } else if (typeof err?.message === "string") {
+        errorMessage = err.message;
+      } else if (err?.msg) {
+        // Pydantic validation error format {type, loc, msg, input}
+        errorMessage = err.msg;
+      } else if (err?.detail) {
+        // FastAPI error format
+        if (typeof err.detail === "string") {
+          errorMessage = err.detail;
+        } else if (Array.isArray(err.detail) && err.detail[0]?.msg) {
+          errorMessage = err.detail[0].msg;
+        }
+      }
+      setUploadError(errorMessage);
     } finally {
       setIsUploading(false);
     }

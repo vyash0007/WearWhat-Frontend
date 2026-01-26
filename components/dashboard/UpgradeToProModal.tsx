@@ -24,11 +24,11 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="bg-transparent border-none shadow-none max-w-[90vw] w-full p-0 sm:max-w-md">
+      <AlertDialogContent className="bg-transparent border-none shadow-none max-w-[85vw] w-full p-0 sm:max-w-sm">
         <div className="relative">
           {/* Tilted creme/off-white background */}
           <div className="absolute top-[-15px] left-[-15px] w-[105%] h-[105%] bg-[#FAF9F6] rounded-3xl transform -rotate-6"></div>
-          
+
           {/* Main dark card */}
           <div className="relative bg-[#1C1C1C] rounded-2xl shadow-xl p-8 text-white">
             {/* Close button */}
@@ -40,21 +40,21 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
             >
               <X className="h-4 w-4" />
             </Button>
-            
+
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-2xl font-bold text-center text-white pt-6">
-                Unlock all Features
+              <AlertDialogTitle className="text-2xl font-medium tracking-wide text-center text-white pt-6">
+                Get More Tokens
               </AlertDialogTitle>
               <div className="text-center mt-3">
-                <div className="font-bold text-lg text-white">
-                  Pro Personal
+                <div className="font-medium tracking-wide text-lg text-white">
+                  $1 = 5 tokens
                 </div>
                 <AlertDialogDescription className="text-sm text-gray-300">
-                  Enjoy all exclusive features
+                  Purchase tokens to generate studio images
                 </AlertDialogDescription>
               </div>
             </AlertDialogHeader>
-            
+
             <div className="my-6">
               <ul className="space-y-3 text-white text-sm">
                 <li className="flex items-center">
@@ -63,7 +63,7 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
                       <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
                     </div>
                   </div>
-                  <span>Onboarding and training options</span>
+                  <span>AI-powered studio image generation</span>
                 </li>
                 <li className="flex items-center">
                   <div className="mr-3 flex-shrink-0">
@@ -71,7 +71,7 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
                       <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
                     </div>
                   </div>
-                  <span>Reporting</span>
+                  <span>Professional background removal</span>
                 </li>
                 <li className="flex items-center">
                   <div className="mr-3 flex-shrink-0">
@@ -79,7 +79,7 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
                       <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
                     </div>
                   </div>
-                  <span>Advance Search</span>
+                  <span>High-quality image enhancement</span>
                 </li>
                 <li className="flex items-center">
                   <div className="mr-3 flex-shrink-0">
@@ -87,7 +87,7 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
                       <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
                     </div>
                   </div>
-                  <span>Private Projects</span>
+                  <span>Instant processing</span>
                 </li>
                 <li className="flex items-center">
                   <div className="mr-3 flex-shrink-0">
@@ -95,15 +95,18 @@ const UpgradeToProModal: React.FC<UpgradeToProModalProps> = ({
                       <Check className="h-3.5 w-3.5 text-white stroke-[2.5]" />
                     </div>
                   </div>
-                  <span>Lifetime Updates</span>
+                  <span>Tokens never expire</span>
                 </li>
               </ul>
             </div>
-            
+
             <AlertDialogFooter>
-              <Button className="w-full bg-[#2A2A2A] hover:bg-[#333333] text-white font-medium py-5 text-md rounded-lg border-0">
+              <Button
+                title="Coming Soon!"
+                className="w-full bg-[#2A2A2A] hover:bg-[#333333] text-white font-medium py-5 text-md rounded-lg border-0 cursor-not-allowed opacity-80"
+              >
                 <ArrowUp className="mr-2 h-5 w-5" />
-                Upgrade to Pro Personal
+                Buy Tokens
               </Button>
             </AlertDialogFooter>
           </div>

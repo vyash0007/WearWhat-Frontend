@@ -47,24 +47,10 @@ export default function StylingPage() {
 
         try {
             setLoadingRecommendation(true)
-            // Note: Style recommendation endpoint not available in backend
-            // Using prompt-based recommendation as fallback
-            const prompt = `Find items that match well with this ${selectedItem.category}`
-            const result = await stylingService.getRecommendation(prompt)
-            // Transform the response to match StyleRecommendationResponse format
-            setRecommendation({
-                success: result.success,
-                source_item: selectedItem,
-                combined_image_url: result.combined_image_url,
-                matched_items: result.items.map(item => ({
-                    ...item,
-                    is_source: false,
-                    match_score: 0.8
-                })),
-                total_items: result.items.length
-            })
+            const result = await stylingService.getStyleRecommendation(selectedItem.id)
+            setRecommendation(result)
             setStep(2)
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error getting recommendations:", err)
             alert("Failed to get style recommendations. Please try again.")
         } finally {
@@ -80,9 +66,8 @@ export default function StylingPage() {
 
     if (step === 2 && recommendation) {
         return (
-            <div className="min-h-screen overflow-x-hidden">
-                <div className="p-3 sm:p-4 md:p-6 lg:p-8 pb-20 sm:pb-6">
-                    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+            <div className="min-h-screen p-4 md:p-6 lg:p-8">
+                <div className="max-w-7xl mx-auto space-y-6">
                         {/* Header */}
                         <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex-1 min-w-0">
@@ -142,7 +127,6 @@ export default function StylingPage() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -151,9 +135,8 @@ export default function StylingPage() {
     }
 
     return (
-        <div className="min-h-screen overflow-x-hidden">
-            <div className="p-3 sm:p-4 md:p-6 lg:p-8 pb-24 sm:pb-6">
-                <div className="max-w-7xl mx-auto space-y-3 sm:space-y-4 md:space-y-6">
+        <div className="min-h-screen p-4 md:p-6 lg:p-8 pb-24 sm:pb-6">
+            <div className="max-w-7xl mx-auto space-y-4 md:space-y-6 overflow-hidden">
                     {/* Header */}
                     <div className="min-w-0">
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-lg tracking-tight text-foreground">AI Styling</h1>
@@ -188,21 +171,41 @@ export default function StylingPage() {
                     </div>
 
                     {/* Category Filter */}
-                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
-                        {categories.map((category) => (
-                            <button
-                                key={category}
-                                onClick={() => setSelectedCategory(category)}
-                                className={cn(
-                                    "rounded-full whitespace-nowrap flex-shrink-0 text-[10px] xs:text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 transition-colors",
-                                    selectedCategory === category
-                                        ? "bg-foreground text-background font-medium"
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-2">
+                            {categories.map((category) => (
+                                <Button
+                                    key={category}
+                                    variant={selectedCategory === category ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setSelectedCategory(category)}
+                                    className={cn(
+                                        "rounded-full",
+                                        selectedCategory === category && "shadow-lg shadow-primary/20"
+                                    )}
+                                >
+                                    {categoryLabels[category]}
+                                </Button>
+                            ))}
+                        </div>
+                        {/* Desktop Get Suggestions Button */}
+                        {selectedItem && !loading && (
+                            <Button
+                                size="sm"
+                                className="hidden md:flex gap-2 shadow-lg shadow-primary/20"
+                                onClick={handleGetSuggestions}
+                                disabled={loadingRecommendation}
                             >
-                                {categoryLabels[category]}
-                            </button>
-                        ))}
+                                {loadingRecommendation ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Getting Suggestions...
+                                    </>
+                                ) : (
+                                    "Get AI Suggestions"
+                                )}
+                            </Button>
+                        )}
                     </div>
 
                     {/* Loading State */}
@@ -265,26 +268,22 @@ export default function StylingPage() {
                         </div>
                     )}
 
-                    {/* Action Button */}
+                    {/* Mobile Action Button */}
                     {selectedItem && !loading && (
-                        <div className="fixed bottom-4 left-4 right-4 z-50 sm:static sm:flex sm:justify-center sm:pt-4 sm:pb-0">
+                        <div className="fixed bottom-4 left-4 right-4 z-50 md:hidden">
                             <Button
                                 size="lg"
-                                className="gap-2 shadow-2xl shadow-primary/30 px-4 sm:px-6 md:px-8 w-full sm:w-auto text-xs sm:text-sm md:text-base h-10 sm:h-11 md:h-12"
+                                className="gap-2 shadow-2xl shadow-primary/30 w-full text-sm h-11"
                                 onClick={handleGetSuggestions}
                                 disabled={loadingRecommendation}
                             >
                                 {loadingRecommendation ? (
                                     <>
-                                        <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-                                        <span className="hidden sm:inline">Getting Suggestions...</span>
-                                        <span className="sm:hidden">Getting...</span>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Getting...
                                     </>
                                 ) : (
-                                    <>
-                                        <span className="hidden sm:inline">Get AI Suggestions</span>
-                                        <span className="sm:hidden">Get Suggestions</span>
-                                    </>
+                                    "Get Suggestions"
                                 )}
                             </Button>
                         </div>
@@ -300,7 +299,6 @@ export default function StylingPage() {
                             <p className="text-muted-foreground mt-1">Try a different category or search term</p>
                         </div>
                     )}
-                </div>
             </div>
         </div>
     )

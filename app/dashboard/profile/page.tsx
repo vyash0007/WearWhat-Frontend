@@ -1,39 +1,27 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Image from "next/image"
-import { Camera, LogOut, Edit3, Heart, MessageCircle, MoreHorizontal, Trash2, Settings, Crown, X, Check } from "lucide-react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { Camera, LogOut, Edit3, Heart, MessageCircle, Settings, Crown, X, Check } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { userService } from "@/lib/api/user"
 import { postsService } from "@/lib/api/posts"
-import { savedImagesService } from "@/lib/api/savedImages"
 import { useAuth } from "@/lib/context"
-import type { UserProfile } from "@/lib/api/user"
 import type { Post } from "@/lib/api/posts"
 import { useRouter } from "next/navigation"
 import { PostCard } from "@/components/social/PostCard"
 import { PostDetail } from "@/components/social/PostDetail"
 import UpgradeToProModal from "@/components/dashboard/UpgradeToProModal"
+import ProfileImageCropModal from "@/components/dashboard/ProfileImageCropModal"
 
 export default function ProfilePage() {
     const router = useRouter()
+    const queryClient = useQueryClient()
     const { logout } = useAuth()
     const [activeTab, setActiveTab] = useState<"posts" | "saved">("posts")
-    const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-    const [userPosts, setUserPosts] = useState<Post[]>([])
-    const [savedCount, setSavedCount] = useState(0)
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
     const [selectedPost, setSelectedPost] = useState<Post | null>(null)
     const [isDetailOpen, setIsDetailOpen] = useState(false)
     const [isEditingName, setIsEditingName] = useState(false)
@@ -42,80 +30,89 @@ export default function ProfilePage() {
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
     const [isUploadingImage, setIsUploadingImage] = useState(false)
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false)
+    const [selectedImageForCrop, setSelectedImageForCrop] = useState<File | null>(null)
 
+    // Fetch user profile with React Query
+    const { data: userProfile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = useQuery({
+        queryKey: ['profile'],
+        queryFn: async () => {
+            const response = await userService.getProfile()
+            return response.user
+        },
+    })
+
+    // Fetch user's posts with React Query
+    const { data: userPosts = [], isLoading: postsLoading } = useQuery({
+        queryKey: ['posts', 'myPosts'],
+        queryFn: async () => {
+            const response = await postsService.getMyPosts(20, 0)
+            console.log("Profile posts response:", response)
+            return response?.posts || []
+        },
+    })
+
+    // Fetch saved posts with React Query
+    const { data: savedPosts = [], isLoading: savedLoading } = useQuery({
+        queryKey: ['posts', 'saved'],
+        queryFn: async () => {
+            const response = await postsService.getSavedPosts(20, 0)
+            console.log("Saved posts response:", response)
+            return response?.posts || []
+        },
+    })
+
+    const loading = profileLoading || postsLoading || savedLoading
+
+    // Set initial values for editing when profile loads
     useEffect(() => {
-        fetchProfileData()
-    }, [])
-
-    const fetchProfileData = async () => {
-        try {
-            setLoading(true)
-            setError(null)
-
-            // Fetch user profile
-            const profileResponse = await userService.getProfile()
-            setUserProfile(profileResponse.user)
-
-            // Fetch user's posts
-            const postsResponse = await postsService.getMyPosts(20, 0)
-            console.log("Profile posts response:", postsResponse)
-            if (postsResponse && postsResponse.posts) {
-                setUserPosts(postsResponse.posts)
-            } else {
-                console.warn("Unexpected posts response format:", postsResponse)
-                setUserPosts([])
-            }
-
-            // Fetch saved images count
-            const savedImages = await savedImagesService.getAll()
-            setSavedCount(savedImages.length)
-
-            // Set initial values for editing
-            setEditedFirstName(profileResponse.user.first_name)
-            setEditedLastName(profileResponse.user.last_name)
-        } catch (err: any) {
-            console.error("Error fetching profile data:", err)
-            setError(err.message || "Failed to load profile")
-        } finally {
-            setLoading(false)
+        if (userProfile) {
+            setEditedFirstName(userProfile.first_name)
+            setEditedLastName(userProfile.last_name)
         }
-    }
+    }, [userProfile])
 
     const handleLogout = async () => {
         try {
             await logout()
-            router.push("/login")
+            router.push("/")
         } catch (err) {
             console.error("Error logging out:", err)
-            // Still redirect to login even if logout fails
-            router.push("/login")
+            router.push("/")
         }
     }
 
     const handleDeletePost = async (postId: string) => {
         try {
             await postsService.delete(postId)
-            setUserPosts(prev => prev.filter(post => post.id !== postId))
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
         } catch (err) {
             console.error("Error deleting post:", err)
             alert("Failed to delete post")
         }
     }
 
-    const getInitials = (firstName: string, lastName: string) => {
-        return `${firstName[0]}${lastName[0]}`.toUpperCase()
+    const handleLike = async (postId: string) => {
+        try {
+            const response = await postsService.like(postId)
+            console.log(`Like response for post ${postId}:`, response)
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
+        } catch (err) {
+            console.error("Error liking post:", err)
+        }
     }
 
-    const getTimeAgo = (dateString: string) => {
-        const date = new Date(dateString)
-        const now = new Date()
-        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    const handleSave = async (postId: string) => {
+        try {
+            const response = await postsService.save(postId)
+            console.log(`Save response for post ${postId}:`, response)
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
+        } catch (err) {
+            console.error("Error saving post:", err)
+        }
+    }
 
-        if (seconds < 60) return 'just now'
-        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-        if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`
-        return `${Math.floor(seconds / 604800)}w ago`
+    const getInitials = (firstName: string, lastName: string) => {
+        return `${firstName[0]}${lastName[0]}`.toUpperCase()
     }
 
     const handleSaveName = async () => {
@@ -126,11 +123,11 @@ export default function ProfilePage() {
 
         try {
             setIsUpdatingProfile(true)
-            const response = await userService.updateProfile({
+            await userService.updateProfile({
                 first_name: editedFirstName.trim(),
                 last_name: editedLastName.trim(),
             })
-            setUserProfile(response.user)
+            queryClient.invalidateQueries({ queryKey: ['profile'] })
             setIsEditingName(false)
         } catch (err) {
             console.error("Error updating profile:", err)
@@ -140,14 +137,19 @@ export default function ProfilePage() {
         }
     }
 
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
+        setSelectedImageForCrop(file)
+        e.target.value = ""
+    }
 
+    const handleCroppedImageUpload = async (croppedFile: File) => {
         try {
             setIsUploadingImage(true)
-            const response = await userService.uploadProfileImage(file)
-            setUserProfile(response.user)
+            await userService.uploadProfileImage(croppedFile)
+            queryClient.invalidateQueries({ queryKey: ['profile'] })
+            setSelectedImageForCrop(null)
         } catch (err) {
             console.error("Error uploading image:", err)
             alert("Failed to upload profile image")
@@ -167,7 +169,7 @@ export default function ProfilePage() {
         )
     }
 
-    if (error || !userProfile) {
+    if (profileError || !userProfile) {
         return (
             <div className="min-h-screen p-4 md:p-6 lg:p-8">
                 <div className="max-w-4xl mx-auto flex flex-col items-center justify-center py-16 text-center">
@@ -175,8 +177,8 @@ export default function ProfilePage() {
                         <X className="h-8 w-8 text-destructive" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground">Failed to load profile</h3>
-                    <p className="text-muted-foreground mt-1">{error}</p>
-                    <Button onClick={fetchProfileData} className="mt-4">Try Again</Button>
+                    <p className="text-muted-foreground mt-1">{profileError instanceof Error ? profileError.message : "Unknown error"}</p>
+                    <Button onClick={() => refetchProfile()} className="mt-4">Try Again</Button>
                 </div>
             </div>
         )
@@ -204,7 +206,7 @@ export default function ProfilePage() {
                                     type="file"
                                     accept="image/*"
                                     className="hidden"
-                                    onChange={handleImageUpload}
+                                    onChange={handleImageSelect}
                                     disabled={isUploadingImage}
                                 />
                             </label>
@@ -302,7 +304,7 @@ export default function ProfilePage() {
                                     <p className="text-sm text-muted-foreground">Posts</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-foreground">{savedCount}</p>
+                                    <p className="text-2xl font-bold text-foreground">{savedPosts.length}</p>
                                     <p className="text-sm text-muted-foreground">Saved</p>
                                 </div>
                                 <div className="text-center">
@@ -358,7 +360,10 @@ export default function ProfilePage() {
                             post={selectedPost}
                             isOpen={isDetailOpen}
                             onClose={() => setIsDetailOpen(false)}
-                            isLiked={false} // Profile page doesn't track likes in state yet, could be added
+                            onLike={handleLike}
+                            onSave={handleSave}
+                            isLiked={selectedPost?.is_liked ?? false}
+                            isSaved={selectedPost?.is_saved ?? false}
                         />
                         {userPosts.length > 0 ? (
                             <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
@@ -367,7 +372,10 @@ export default function ProfilePage() {
                                         key={post.id}
                                         post={post}
                                         onDelete={handleDeletePost}
-                                        isLiked={false}
+                                        onLike={handleLike}
+                                        onSave={handleSave}
+                                        isLiked={post.is_liked}
+                                        isSaved={post.is_saved}
                                         onCommentClick={(p) => {
                                             setSelectedPost(p)
                                             setIsDetailOpen(true)
@@ -387,18 +395,36 @@ export default function ProfilePage() {
                     </>
                 )}
 
-                {/* Empty State for Saved Tab */}
+                {/* Saved Posts Grid */}
                 {activeTab === "saved" && (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                            <Heart className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-foreground">View your saved outfits</h3>
-                        <p className="text-muted-foreground mt-1">Visit the Saved page to see all your saved outfits</p>
-                        <Button className="mt-4" onClick={() => router.push("/dashboard/saved")}>
-                            Go to Saved
-                        </Button>
-                    </div>
+                    <>
+                        {savedPosts.length > 0 ? (
+                            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+                                {savedPosts.map((post) => (
+                                    <PostCard
+                                        key={post.id}
+                                        post={post}
+                                        onLike={handleLike}
+                                        onSave={handleSave}
+                                        isLiked={post.is_liked}
+                                        isSaved={post.is_saved}
+                                        onCommentClick={(p) => {
+                                            setSelectedPost(p)
+                                            setIsDetailOpen(true)
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-16 text-center">
+                                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                                    <Heart className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-foreground">No saved posts yet</h3>
+                                <p className="text-muted-foreground mt-1">Save posts from the community to see them here</p>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -407,6 +433,16 @@ export default function ProfilePage() {
                 isOpen={isUpgradeModalOpen}
                 onClose={() => setIsUpgradeModalOpen(false)}
             />
+
+            {/* Profile Image Crop Modal */}
+            {selectedImageForCrop && (
+                <ProfileImageCropModal
+                    imageFile={selectedImageForCrop}
+                    onClose={() => setSelectedImageForCrop(null)}
+                    onCropComplete={handleCroppedImageUpload}
+                    isUploading={isUploadingImage}
+                />
+            )}
         </div>
     )
 }

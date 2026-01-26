@@ -1,47 +1,28 @@
 "use client"
 
 import { useState } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import Image from "next/image"
-import { Bookmark, Grid3X3, LayoutGrid, MoreHorizontal, Trash2, Share2, X } from "lucide-react"
+import { Bookmark, Grid3X3, LayoutGrid, X } from "lucide-react"
 import ShirtLoader from "@/components/ui/ShirtLoader"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { savedImagesService } from "@/lib/api/savedImages"
-import type { SavedImage } from "@/lib/api/types"
+import { postsService } from "@/lib/api/posts"
 
 export default function SavedPage() {
-    const queryClient = useQueryClient()
     const [viewMode, setViewMode] = useState<"grid" | "masonry">("grid")
 
-    // Fetch saved images with React Query
-    const { data: savedImagesData, isLoading: loading, error, refetch } = useQuery({
-        queryKey: ['saved', 'images'],
+    // Fetch saved posts with React Query
+    const { data: savedPostsData, isLoading: loading, error, refetch } = useQuery({
+        queryKey: ['posts', 'saved'],
         queryFn: async () => {
-            const images = await savedImagesService.getAll()
-            return images
+            const response = await postsService.getSavedPosts(20, 0)
+            console.log("Saved posts response:", response)
+            return response?.posts || []
         },
     })
 
-    const savedImages = savedImagesData || []
-
-    const handleDelete = async (savedImageId: string) => {
-        try {
-            await savedImagesService.delete(savedImageId)
-            // Invalidate and refetch saved images
-            queryClient.invalidateQueries({ queryKey: ['saved'] })
-        } catch (err) {
-            console.error("Error deleting saved image:", err)
-            alert("Failed to delete image")
-        }
-    }
+    const savedPosts = savedPostsData || []
 
     const getTimeAgo = (dateString: string) => {
         const date = new Date(dateString)
@@ -109,60 +90,33 @@ export default function SavedPage() {
                 )}
 
                 {/* Saved Images Grid */}
-                {!loading && !error && savedImages.length > 0 && (
+                {!loading && !error && savedPosts.length > 0 && (
                     <div className={cn(
                         "grid gap-4",
                         viewMode === "grid"
                             ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                             : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
                     )}>
-                        {savedImages.map((savedImage) => (
+                        {savedPosts.map((post) => (
                             <div
-                                key={savedImage.id}
+                                key={post.id}
                                 className="group bg-card rounded-2xl border border-border overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1"
                             >
                                 {/* Image */}
-                                <div className="relative p-3">
-                                    <div className="relative aspect-square rounded-xl overflow-hidden bg-white">
-                                        <Image
-                                            src={savedImage.image_url || '/placeholder.png'}
-                                            alt="Saved outfit"
-                                            fill
-                                            className="object-contain p-2"
-                                        />
-                                    </div>
-
-                                    {/* Hover Overlay */}
-                                    <div className="absolute inset-3 rounded-xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="secondary" size="sm" className="gap-2">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    Options
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent>
-                                                <DropdownMenuItem className="gap-2">
-                                                    <Share2 className="h-4 w-4" /> Share
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="gap-2 text-destructive"
-                                                    onClick={() => handleDelete(savedImage.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" /> Remove
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
+                                <div className="relative aspect-square">
+                                    <Image
+                                        src={post.image_url}
+                                        alt="Saved outfit"
+                                        fill
+                                        className="object-cover"
+                                    />
                                 </div>
 
                                 {/* Info */}
-                                <div className="px-4 pb-4">
-                                    {savedImage.note && (
-                                        <p className="text-sm text-muted-foreground mb-2">{savedImage.note}</p>
-                                    )}
+                                <div className="p-3">
+                                    <p className="text-sm font-medium text-foreground truncate">{post.user_name}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        Saved {getTimeAgo(savedImage.saved_at)}
+                                        {getTimeAgo(post.created_at)}
                                     </p>
                                 </div>
                             </div>
@@ -171,13 +125,13 @@ export default function SavedPage() {
                 )}
 
                 {/* Empty State */}
-                {!loading && !error && savedImages.length === 0 && (
+                {!loading && !error && savedPosts.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
                             <Bookmark className="h-8 w-8 text-muted-foreground" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">No saved outfits yet</h3>
-                        <p className="text-muted-foreground mt-1">Start saving outfits from the community or planning pages</p>
+                        <p className="text-muted-foreground mt-1">Save posts from the community to see them here</p>
                     </div>
                 )}
             </div>

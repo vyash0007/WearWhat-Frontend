@@ -21,6 +21,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/context/AuthContext"
 import { wardrobeService } from "@/lib/api/wardrobe"
 import type { WardrobeItem } from "@/lib/api/types"
 import { CATEGORY_GROUPS, ATTRIBUTE_LABELS } from "@/lib/api/types"
@@ -40,6 +41,7 @@ const categoryGroupMap: Record<string, string> = {
 export default function WardrobePage() {
     const router = useRouter()
     const queryClient = useQueryClient()
+    const { isAuthenticated } = useAuth()
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedCategory, setSelectedCategory] = useState("All")
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -53,6 +55,7 @@ export default function WardrobePage() {
             const response = await wardrobeService.getItems()
             return response.items
         },
+        enabled: isAuthenticated,
     })
 
     const wardrobeItems = wardrobeData || []
@@ -280,12 +283,12 @@ export default function WardrobePage() {
                     {selectedItem && (
                         <div className="grid md:grid-cols-2 gap-6">
                             {/* Image */}
-                            <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
+                            <div className="relative aspect-square rounded-xl overflow-hidden bg-white">
                                 <Image
                                     src={selectedItem.image_url}
                                     alt={selectedItem.category}
                                     fill
-                                    className="object-cover"
+                                    className="object-contain p-2"
                                 />
                             </div>
 

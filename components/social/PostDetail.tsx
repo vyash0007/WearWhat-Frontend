@@ -21,10 +21,12 @@ interface PostDetailProps {
     isOpen: boolean
     onClose: () => void
     onLike?: (postId: string) => void
+    onSave?: (postId: string) => void
     isLiked?: boolean
+    isSaved?: boolean
 }
 
-export function PostDetail({ post, isOpen, onClose, onLike, isLiked }: PostDetailProps) {
+export function PostDetail({ post, isOpen, onClose, onLike, onSave, isLiked, isSaved }: PostDetailProps) {
     const [comment, setComment] = useState("")
     const [comments, setComments] = useState<Comment[]>([])
     const [loadingComments, setLoadingComments] = useState(false)
@@ -183,8 +185,8 @@ export function PostDetail({ post, isOpen, onClose, onLike, isLiked }: PostDetai
                                         <Send className="h-6 w-6" />
                                     </button>
                                 </div>
-                                <button>
-                                    <Bookmark className="h-6 w-6" />
+                                <button onClick={() => onSave?.(post.id)}>
+                                    <Bookmark className={cn("h-6 w-6", isSaved ? "fill-foreground text-foreground" : "text-foreground")} />
                                 </button>
                             </div>
 

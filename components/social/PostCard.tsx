@@ -16,12 +16,14 @@ import type { Post } from "@/lib/api/posts"
 interface PostCardProps {
     post: Post
     onLike?: (postId: string) => void
+    onSave?: (postId: string) => void
     onCommentClick?: (post: Post) => void
     onDelete?: (postId: string) => void
     isLiked?: boolean
+    isSaved?: boolean
 }
 
-export function PostCard({ post, onLike, onCommentClick, onDelete, isLiked }: PostCardProps) {
+export function PostCard({ post, onLike, onSave, onCommentClick, onDelete, isLiked, isSaved }: PostCardProps) {
     const getInitials = (name: string) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase()
     }
@@ -116,8 +118,16 @@ export function PostCard({ post, onLike, onCommentClick, onDelete, isLiked }: Po
                             </span>
                         </div>
                     </div>
-                    <button className="hover:text-muted-foreground transition-colors">
-                        <Bookmark className="h-6 w-6" />
+                    <button
+                        onClick={() => onSave?.(post.id)}
+                        className="transition-transform active:scale-125 duration-200"
+                    >
+                        <Bookmark
+                            className={cn(
+                                "h-6 w-6",
+                                isSaved ? "fill-foreground text-foreground" : "text-foreground hover:text-muted-foreground transition-colors"
+                            )}
+                        />
                     </button>
                 </div>
 
