@@ -377,21 +377,21 @@ export default function PlanningPage() {
                             {/* The Fit Section */}
                             <div className="hidden lg:block lg:col-span-5">
                                 <div className="bg-card rounded-lg sm:rounded-xl md:rounded-2xl border border-border overflow-hidden h-full min-h-[300px] sm:min-h-[400px] md:min-h-[500px]">
-                                    <div className="p-3 sm:p-4 border-b border-border">
+                                    <div className="p-2 sm:p-3 border-b border-border">
                                         <h2 className="text-base sm:text-lg font-bold text-foreground text-center">THE FIT</h2>
                                     </div>
-                                    <div className="p-3 sm:p-4 md:p-6 h-[calc(100%-50px)] sm:h-[calc(100%-60px)]">
-                                        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 h-full auto-rows-fr">
+                                    <div className="p-1.5 sm:p-2 md:p-3 h-[calc(100%-40px)] sm:h-[calc(100%-50px)] overflow-y-auto">
+                                        <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
                                             {fitItems.map((item) => (
                                                 <div
                                                     key={item.id}
-                                                    className="relative rounded-lg sm:rounded-xl overflow-hidden bg-muted/50"
+                                                    className="relative aspect-square rounded-sm sm:rounded-md overflow-hidden bg-white border border-border/50"
                                                 >
                                                     <Image
                                                         src={item.image_url}
                                                         alt={item.category}
                                                         fill
-                                                        className="object-cover"
+                                                        className="object-contain"
                                                     />
                                                 </div>
                                             ))}
@@ -417,17 +417,17 @@ export default function PlanningPage() {
                                                 />
                                             </div>
                                         ) : inspoItems.length > 0 ? (
-                                            <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 h-full">
+                                            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                                                 {inspoItems.map((item) => (
                                                     <div
                                                         key={item.id}
-                                                        className="relative rounded-lg sm:rounded-xl overflow-hidden bg-white"
+                                                        className="relative aspect-square rounded-md sm:rounded-lg overflow-hidden bg-white"
                                                     >
                                                         <Image
                                                             src={item.image_url}
                                                             alt={item.category}
                                                             fill
-                                                            className="object-cover"
+                                                            className="object-contain"
                                                         />
                                                     </div>
                                                 ))}
