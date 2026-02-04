@@ -18,7 +18,7 @@ import {
     Menu,
     X,
     Shirt,
-    Zap,
+    Camera,
     Coins,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -29,7 +29,7 @@ import UpgradeToProModal from "@/components/dashboard/UpgradeToProModal"
 
 const navItems = [
     { href: "/dashboard/wardrobe", label: "Wardrobe", icon: LayoutGrid },
-    { href: "/dashboard/studio", label: "Studio", icon: Zap },
+    { href: "/dashboard/studio", label: "Studio", icon: Camera },
     { href: "/dashboard/styling", label: "Styling", icon: Scissors },
     { href: "/dashboard/planning", label: "Planning", icon: Calendar },
     { href: "/dashboard/community", label: "Community", icon: Users },
